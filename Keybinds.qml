@@ -599,6 +599,7 @@ Item {
       Item {
         id: keyCatcher
         anchors.fill: parent
+        anchors.margins: root.contentMargin
         focus: true
 
         Keys.priority: Keys.BeforeItem
@@ -799,7 +800,10 @@ Item {
               ListView {
                 id: resultList
                 width: parent.width
-                height: parent.height - root.rowHeight - Style.spacing.sm
+                height: {
+                  var available = parent.height - root.rowHeight - Style.spacing.sm
+                  return Math.max(root.rowHeight, Math.floor(available / root.rowHeight) * root.rowHeight)
+                }
                 clip: true
                 model: root.visibleRows
                 currentIndex: root.selectedIndex
