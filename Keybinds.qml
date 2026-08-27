@@ -586,30 +586,13 @@ Item {
 
           // Tab strip, framed and labelled like the TUI's bordered block.
           Rectangle {
+            id: tabFrame
             width: parent.width
             height: tabRow.height + Style.spacing.md * 2
             color: "transparent"
             border.color: root.border
             border.width: 1
             radius: root.cornerRadius
-
-            Text {
-              x: Style.spacing.md
-              y: -height / 2
-              leftPadding: Style.spacing.xs
-              rightPadding: Style.spacing.xs
-              text: "keybinds"
-              color: root.foreground
-              opacity: 0.55
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
-              // Sits on the border line, so it needs the card behind it.
-              Rectangle {
-                anchors.fill: parent
-                z: -1
-                color: root.background
-              }
-            }
 
             Row {
               id: tabRow
@@ -657,7 +640,7 @@ Item {
           // Table
           Rectangle {
             width: parent.width
-            height: parent.height - y - footer.height - Style.spacing.md
+            height: parent.height - tabFrame.height - footer.height - Style.spacing.md * 2
             color: "transparent"
             border.color: root.border
             border.width: 1
