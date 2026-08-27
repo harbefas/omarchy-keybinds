@@ -67,39 +67,49 @@ Search matches multiple words in any order, as substrings or fuzzily, so
 ## Install
 
 ```bash
-omarchy plugin add https://github.com/harbefas/omarchy-keybinds --enable
+omarchy plugin add https://github.com/harbefas/omarchy-keybinds
+omarchy bar put harbefas.keybinds --section right
+omarchy restart shell
 ```
 
-Add the widget to the bar:
+Install without `--enable` and let `bar put` do the enabling. Passing `--enable`
+first registers the plugin on its own, and `bar put` then reports success while
+leaving it off the bar. If that already happened, remove the plugin's entry from
+`plugins[]` in `~/.config/omarchy/shell.json` and run `bar put` again.
 
-```bash
-omarchy bar move harbefas.keybinds --section right
-```
+That is all it takes to use it: click the bar icon for the popup, right-click
+for the full view.
 
-Bind the popup to a key. On Omarchy Quattro the bindings live in
-`~/.config/hypr/bindings.lua`:
+### A shortcut, if you want one
+
+Nothing is written to your Hyprland config, so there is no keybind unless you
+add one, and you may not want one at all since the bar icon works on its own.
+
+Both surfaces answer IPC, so bind whichever key you prefer. On Omarchy Quattro
+the bindings live in `~/.config/hypr/bindings.lua`:
 
 ```lua
+-- the popup, which hands off to the full view with Enter
 o.bind("SUPER + SHIFT + H", "Keybinds", "omarchy-shell harbefas.keybinds.widget toggle")
-```
 
-The popup is the entry point; `Enter` or the **Full view** button opens the
-overlay from there. To bind the overlay directly as well:
-
-```lua
+-- or the full view directly
 o.bind("SUPER + SHIFT + K", "Keybinds full", "omarchy-shell shell summon harbefas.keybinds")
 ```
 
-On older setups still using `~/.config/hypr/bindings.conf`:
+On setups still using `~/.config/hypr/bindings.conf`:
 
 ```
-bindd = SUPER SHIFT, H, Keybindings, exec, omarchy-shell shell summon harbefas.keybinds
+bindd = SUPER SHIFT, H, Keybinds, exec, omarchy-shell harbefas.keybinds.widget toggle
 ```
 
-Then reload:
+`SUPER + SHIFT + H` is only a suggestion. The popup mentions it for the first
+few opens and stops once any binding references the plugin.
+
+### Without the bar icon
 
 ```bash
-omarchy restart shell
+omarchy plugin enable harbefas.keybinds
+omarchy-shell shell summon harbefas.keybinds
 ```
 
 ## Requirements
