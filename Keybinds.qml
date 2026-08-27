@@ -671,7 +671,7 @@ Item {
 
         Column {
           anchors.top: parent.top
-          anchors.topMargin: Style.spacing.sm
+          anchors.topMargin: Style.spacing.md
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.bottom: footer.top
@@ -690,7 +690,7 @@ Item {
 
             Text {
               x: Style.spacing.md
-              y: -height / 2
+              y: -Math.round(height / 2)
               leftPadding: Style.spacing.xs
               rightPadding: Style.spacing.xs
               text: "keybinds"
@@ -709,7 +709,9 @@ Item {
 
             Row {
               id: tabRow
-              anchors.centerIn: parent
+              anchors.left: parent.left
+              anchors.leftMargin: Style.spacing.md
+              anchors.verticalCenter: parent.verticalCenter
               spacing: 0
 
               Repeater {
