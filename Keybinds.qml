@@ -150,13 +150,21 @@ Item {
         if (appId.indexOf(classes[c].toLowerCase()) >= 0) return root.tabs[i].app
     }
 
-    // A terminal window says nothing about which TUI is running inside it, so
-    // ask the process tree; the answer arrives async and re-selects the tab.
-    if (["ghostty", "com.mitchellh.ghostty", "kitty", "alacritty", "foot"].some(function (t) {
+    if (!["ghostty", "com.mitchellh.ghostty", "kitty", "alacritty", "foot"].some(function (t) {
       return appId.indexOf(t) >= 0
-    })) {
-      terminalProbe.running = true
+    })) return fallback
+
+    // A terminal window does not say which TUI is running inside it. The title
+    // usually does — scratchpad launchers and most TUIs set it — so try that
+    // before paying for a process-tree walk.
+    var title = (toplevel.title || "").toLowerCase()
+    for (var name in root.terminalApps) {
+      if (title.indexOf(name) >= 0 && root.tabIndexByApp(root.terminalApps[name]) >= 0)
+        return root.terminalApps[name]
     }
+
+    // Otherwise ask the process tree; the answer arrives async and re-selects.
+    activeWindowProbe.running = true
     return fallback
   }
 
@@ -524,9 +532,15 @@ Item {
     "lazygit": "Lazygit", "yazi": "Yazi", "glow": "Glow", "tuicr": "Tuicr"
   })
 
+  property int focusedPid: 0
+
+  function setFocusedPid(raw) {
+    try { root.focusedPid = JSON.parse(raw).pid || 0 } catch (e) { root.focusedPid = 0 }
+    if (root.focusedPid) terminalProbe.running = true
+  }
+
   function resolveTerminalTab(psOutput) {
-    var focusedPid = 0
-    try { focusedPid = Hyprland.activeToplevel.lastIpcObject.pid || 0 } catch (e) { return }
+    var focusedPid = root.focusedPid
     if (!focusedPid) return
 
     var children = {}
@@ -553,6 +567,12 @@ Item {
       }
       if (children[pid]) queue = queue.concat(children[pid])
     }
+  }
+
+  Process {
+    id: activeWindowProbe
+    command: ["hyprctl", "-j", "activewindow"]
+    stdout: StdioCollector { onStreamFinished: root.setFocusedPid(text) }
   }
 
   Process {
