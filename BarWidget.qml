@@ -314,9 +314,11 @@ BarWidget {
 
       Text {
         width: parent.width
+        // Only what the popup itself needs; the full overlay lists the rest
+        // in its own footer, and a hint that elides teaches nothing.
         text: root.mode === "search"
               ? "/ " + root.filterText
-              : "h/l tabs · j/k navigate · gg/G top/bottom · / search · Enter full view · q close"
+              : "h/l tabs · j/k nav · / search · Enter full"
         textFormat: Text.PlainText
         color: root.mode === "search" ? root.accent : root.secondary
         font.family: Style.font.family
