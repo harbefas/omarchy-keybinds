@@ -771,9 +771,10 @@ Item {
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.bottom: parent.bottom
+          leftPadding: Style.spacing.sm
           text: root.filterText
                 ? "/ " + root.filterText
-                : "←/→ switch tab · ↑/↓ navigate · type to search · @tab to jump · Esc close"
+                : "Tab switch tab · ↑/↓ navigate · type to search · @tab to jump · Esc close"
           color: root.filterText ? root.accent : root.foreground
           opacity: root.filterText ? 1.0 : 0.5
           font.family: root.fontFamily
