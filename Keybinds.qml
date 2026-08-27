@@ -119,6 +119,42 @@ Item {
     else root.open("{}")
   }
 
+  // --------------------------------------------------------------- untrusted
+
+  // Binds reach us from the compositor, from a headless Neovim dump written by
+  // whatever plugins the user has installed, and from process names — none of
+  // it under our control. Bound the length and drop control characters here,
+  // and render every one of these strings as PlainText, so a hostile value
+  // cannot smuggle markup into the long-lived shell UI.
+  readonly property int maxFieldLength: 200
+
+  function clean(value, limit) {
+    var text = String(value === undefined || value === null ? "" : value)
+    // Strip C0/C7 control characters, including the ESC that starts an
+    // terminal escape sequence, plus the Unicode line/paragraph separators.
+    text = text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ")
+    text = text.replace(/\s+/g, " ").replace(/^ | $/g, "")
+    var max = limit || root.maxFieldLength
+    return text.length > max ? text.slice(0, max) + "…" : text
+  }
+
+  function cleanSections(sections) {
+    var out = []
+    for (var s = 0; s < sections.length; s++) {
+      var binds = sections[s].binds || []
+      var cleanBinds = []
+      for (var b = 0; b < binds.length; b++) {
+        var keys = root.clean(binds[b].keys, 80)
+        var action = root.clean(binds[b].action)
+        if (!keys && !action) continue
+        cleanBinds.push({ keys: keys, action: action })
+      }
+      if (cleanBinds.length === 0) continue
+      out.push({ name: root.clean(sections[s].name, 60), binds: cleanBinds })
+    }
+    return out
+  }
+
   // ------------------------------------------------------------------- tabs
 
   function tabIndexByApp(app) {
@@ -130,6 +166,10 @@ Item {
   // Replaces a tab in place when its async source resolves, or appends it
   // keeping `order` (lower first) so the strip does not jump around.
   function upsertTab(tab, order) {
+    tab.app = root.clean(tab.app, 40)
+    tab.sections = root.cleanSections(tab.sections || [])
+    if (!tab.app) return
+
     var next = root.allTabs.slice()
     var at = -1
     for (var i = 0; i < next.length; i++)
@@ -590,7 +630,7 @@ Item {
       if (!pid) continue
       if (!children[ppid]) children[ppid] = []
       children[ppid].push(pid)
-      names[pid] = parts.slice(2).join(" ")
+      names[pid] = root.clean(parts.slice(2).join(" "), 64)
     }
 
     var queue = [focusedPid]
@@ -767,6 +807,7 @@ Item {
                 color: root.foreground
                 opacity: 0.55
                 font.family: root.fontFamily
+                textFormat: Text.PlainText
                 font.pixelSize: Style.font.bodySmall
               }
             }
@@ -791,6 +832,7 @@ Item {
                     visible: index > 0
                     color: root.border
                     font.family: root.fontFamily
+                    textFormat: Text.PlainText
                     font.pixelSize: Style.font.body
                   }
 
@@ -799,6 +841,7 @@ Item {
                     color: index === root.activeTab ? root.accent : root.foreground
                     opacity: index === root.activeTab ? 1.0 : 0.65
                     font.family: root.fontFamily
+                    textFormat: Text.PlainText
                     font.pixelSize: Style.font.body
                     font.bold: index === root.activeTab
 
@@ -840,6 +883,7 @@ Item {
                   text: "Section"
                   color: root.foreground
                   font.family: root.fontFamily
+                  textFormat: Text.PlainText
                   font.pixelSize: Style.font.body
                   font.bold: true
                 }
@@ -848,6 +892,7 @@ Item {
                   text: "Key"
                   color: root.foreground
                   font.family: root.fontFamily
+                  textFormat: Text.PlainText
                   font.pixelSize: Style.font.body
                   font.bold: true
                 }
@@ -855,6 +900,7 @@ Item {
                   text: "Action"
                   color: root.foreground
                   font.family: root.fontFamily
+                  textFormat: Text.PlainText
                   font.pixelSize: Style.font.body
                   font.bold: true
                 }
@@ -893,11 +939,13 @@ Item {
 
                     Text {
                       width: keyCatcher.sectionWidth
+                      rightPadding: Style.spacing.md
                       anchors.verticalCenter: parent.verticalCenter
                       text: modelData.section
                       color: root.foreground
                       opacity: 0.6
                       font.family: root.fontFamily
+                      textFormat: Text.PlainText
                       font.pixelSize: Style.font.body
                       font.bold: index === root.selectedIndex
                       elide: Text.ElideRight
@@ -905,10 +953,12 @@ Item {
 
                     Text {
                       width: keyCatcher.keysWidth
+                      rightPadding: Style.spacing.md
                       anchors.verticalCenter: parent.verticalCenter
                       text: modelData.keys
                       color: root.accent
                       font.family: root.fontFamily
+                      textFormat: Text.PlainText
                       font.pixelSize: Style.font.body
                       font.bold: index === root.selectedIndex
                       elide: Text.ElideRight
@@ -920,6 +970,7 @@ Item {
                       text: modelData.action
                       color: root.foreground
                       font.family: root.fontFamily
+                      textFormat: Text.PlainText
                       font.pixelSize: Style.font.body
                       font.bold: index === root.selectedIndex
                       elide: Text.ElideRight
@@ -936,6 +987,7 @@ Item {
               color: root.foreground
               opacity: 0.5
               font.family: root.fontFamily
+              textFormat: Text.PlainText
               font.pixelSize: Style.font.body
             }
           }
@@ -956,6 +1008,7 @@ Item {
           color: root.mode === "normal" ? root.foreground : root.accent
           opacity: root.mode === "normal" ? 0.75 : 1.0
           font.family: root.fontFamily
+          textFormat: Text.PlainText
           font.pixelSize: Style.font.bodySmall
           elide: Text.ElideRight
         }
