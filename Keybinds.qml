@@ -61,9 +61,9 @@ Item {
   property int contentMargin: Style.spacing.panelPadding
   // Sized like a dialog, not a fullscreen takeover: capped in absolute terms
   // and again as a share of the screen so it stays a card on a small display.
-  property int cardWidth: Math.min(Style.space(720), Math.round(panel.width * 0.66))
-  property int cardHeight: Math.min(Style.space(560), Math.round(panel.height * 0.62))
-  property int rowHeight: Math.max(Style.space(26), Style.font.body + Style.spacing.sm * 2)
+  property int cardWidth: Math.min(Style.space(880), Math.round(panel.width * 0.80))
+  property int cardHeight: Math.min(Style.space(640), Math.round(panel.height * 0.74))
+  property int rowHeight: Math.max(Style.space(30), Style.font.body + Style.spacing.md * 2)
 
   // ---------------------------------------------------------------- lifecycle
 
@@ -666,11 +666,12 @@ Item {
         // Column widths mirror the terminal build's table: a narrow section
         // gutter, a key column wide enough for "Prefix + shift + n / alt",
         // and the action taking whatever is left.
-        readonly property real sectionWidth: Math.round(width * 0.20)
-        readonly property real keysWidth: Math.round(width * 0.28)
+        readonly property real sectionWidth: Math.round(width * 0.18)
+        readonly property real keysWidth: Math.round(width * 0.32)
 
         Column {
           anchors.top: parent.top
+          anchors.topMargin: Style.spacing.sm
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.bottom: footer.top
@@ -686,6 +687,25 @@ Item {
             border.color: root.border
             border.width: 1
             radius: root.cornerRadius
+
+            Text {
+              x: Style.spacing.md
+              y: -height / 2
+              leftPadding: Style.spacing.xs
+              rightPadding: Style.spacing.xs
+              text: "keybinds"
+              color: root.foreground
+              opacity: 0.55
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+
+              // Sits on the border line, so it needs the card behind it.
+              Rectangle {
+                anchors.fill: parent
+                z: -1
+                color: root.background
+              }
+            }
 
             Row {
               id: tabRow
@@ -865,7 +885,7 @@ Item {
             return "h/l switch tab · j/k navigate · Ctrl+d/u half page · gg/G top/bottom · / search · w which-key · q quit"
           }
           color: root.mode === "normal" ? root.foreground : root.accent
-          opacity: root.mode === "normal" ? 0.5 : 1.0
+          opacity: root.mode === "normal" ? 0.75 : 1.0
           font.family: root.fontFamily
           font.pixelSize: Style.font.bodySmall
           elide: Text.ElideRight
