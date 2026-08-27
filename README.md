@@ -48,13 +48,17 @@ name none and always show.
 |---|---|
 | `h` / `l`, `←` / `→`, `Tab` | previous / next tab |
 | `j` / `k`, `↑` / `↓` | move selection |
-| `Ctrl+d` / `Ctrl+u` | half page down / up |
+| `Ctrl+d` / `Ctrl+u` | half page down / up (overlay) |
 | `gg` / `G` | top / bottom |
 | `/` | search the active tab |
-| `w` | which-key narrowing: type the chord to filter by it |
-| `@name` | jump to a tab by name or alias (`@vim scroll`) |
+| `w` | which-key narrowing: type the chord to filter by it (overlay) |
+| `@name` | jump to a tab by name or alias, e.g. `@vim scroll` (overlay) |
+| `Enter` | open the full overlay (popup) |
 | `Esc` | leave search or which-key, then close |
 | `q` | close |
+
+Both surfaces use the same modal scheme as the terminal build: normal keys
+navigate and `/` opens search, so `h`/`j`/`k`/`l` stay reachable.
 
 Search matches multiple words in any order, as substrings or fuzzily, so
 "tab next", "next tab", and "nxt tb" all find "Next tab".

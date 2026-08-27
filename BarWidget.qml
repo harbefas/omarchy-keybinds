@@ -20,7 +20,12 @@ BarWidget {
 
   property bool popupOpen: false
   property string activeApp: ""
+  // Modal like the overlay and the terminal build: normal keys navigate,
+  // `/` opens search. Typing straight into a filter would make h/j/k/l
+  // unreachable.
+  property string mode: "normal"
   property string filterText: ""
+  property bool pendingG: false
   property int selectedIndex: 0
 
   readonly property int activeTab: {
@@ -44,7 +49,9 @@ BarWidget {
       root.service.refresh()
       root.activeApp = root.service.guessAppForFocus()
     }
+    root.mode = "normal"
     root.filterText = ""
+    root.pendingG = false
     root.selectedIndex = 0
     root.popupOpen = true
     Qt.callLater(function () { rowList.forceActiveFocus() })
@@ -87,14 +94,22 @@ BarWidget {
     rowList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
   }
 
+  function selectEdge(top) {
+    if (root.rows.length === 0) return
+    root.selectedIndex = top ? 0 : root.rows.length - 1
+    rowList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+  }
+
+  function setFilter(next) {
+    root.filterText = next
+    root.selectedIndex = 0
+  }
+
   function handleKey(event) {
     event.accepted = true
-    if (event.key === Qt.Key_Escape) {
-      if (root.filterText) root.filterText = ""
-      else root.closePopup()
-      return
-    }
-    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { root.openFull(); return }
+
+    // Arrows and Tab keep working in every mode, for anyone who does not
+    // reach for the vim keys.
     if (event.key === Qt.Key_Down) { root.select(1); return }
     if (event.key === Qt.Key_Up) { root.select(-1); return }
     if (event.key === Qt.Key_Right
@@ -105,14 +120,42 @@ BarWidget {
         || (event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier))) {
       root.selectTab(-1); return
     }
+
+    if (event.key === Qt.Key_Escape) {
+      if (root.mode !== "normal") {
+        root.mode = "normal"
+        root.setFilter("")
+      } else root.closePopup()
+      return
+    }
+    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { root.openFull(); return }
+
+    if (root.mode === "normal") {
+      switch (event.text) {
+      case "h": root.selectTab(-1); return
+      case "l": root.selectTab(1); return
+      case "j": root.select(1); return
+      case "k": root.select(-1); return
+      case "G": root.selectEdge(false); return
+      case "/": root.mode = "search"; root.setFilter(""); root.pendingG = false; return
+      case "q": root.closePopup(); return
+      case "g":
+        if (root.pendingG) { root.pendingG = false; root.selectEdge(true) }
+        else root.pendingG = true
+        return
+      }
+      root.pendingG = false
+      return
+    }
+
+    // search mode
     if (event.key === Qt.Key_Backspace) {
-      root.filterText = root.filterText.slice(0, -1)
-      root.selectedIndex = 0
+      if (!root.filterText) root.mode = "normal"
+      else root.setFilter(root.filterText.slice(0, -1))
       return
     }
     if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32) {
-      root.filterText += event.text
-      root.selectedIndex = 0
+      root.setFilter(root.filterText + event.text)
       return
     }
     event.accepted = false
@@ -271,11 +314,11 @@ BarWidget {
 
       Text {
         width: parent.width
-        text: root.filterText
+        text: root.mode === "search"
               ? "/ " + root.filterText
-              : "Tab switch · type to search · Enter full view · Esc close"
+              : "h/l tabs · j/k navigate · gg/G top/bottom · / search · Enter full view · q close"
         textFormat: Text.PlainText
-        color: root.filterText ? root.accent : root.secondary
+        color: root.mode === "search" ? root.accent : root.secondary
         font.family: Style.font.family
         font.pixelSize: Style.font.caption
         elide: Text.ElideRight
