@@ -689,22 +689,29 @@ Item {
             border.width: 1
             radius: root.cornerRadius
 
-            Text {
+            // The label straddles the frame's top line and has to hide the
+            // stretch behind it. A child with z:-1 is painted behind its own
+            // parent — border included — so the mask is a plain sibling
+            // declared before the text instead.
+            Item {
               x: Style.spacing.md
               y: -Math.round(height / 2)
-              leftPadding: Style.spacing.xs
-              rightPadding: Style.spacing.xs
-              text: "keybinds"
-              color: root.foreground
-              opacity: 0.55
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
+              width: labelText.implicitWidth + Style.spacing.sm * 2
+              height: labelText.implicitHeight
 
-              // Sits on the border line, so it needs the card behind it.
               Rectangle {
                 anchors.fill: parent
-                z: -1
-                color: root.background
+                color: Qt.rgba(root.background.r, root.background.g, root.background.b, 1)
+              }
+
+              Text {
+                id: labelText
+                anchors.centerIn: parent
+                text: "keybinds"
+                color: root.foreground
+                opacity: 0.55
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
               }
             }
 
