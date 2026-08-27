@@ -360,10 +360,15 @@ Item {
 
   // ----------------------------------------------------------------- neovim
 
-  // Same headless dump and same cache file as keybinds-tui, so whichever ran
-  // last warms the other. The dump costs seconds on a plugin-heavy config,
-  // hence the placeholder tab and the background load.
-  readonly property string nvimCache: "/tmp/kb-nvim-cache.json"
+  // The dump costs seconds on a plugin-heavy config, hence the placeholder
+  // tab and the background load.
+  //
+  // keybinds-tui's cache is read when it is warm — it holds the same keymaps,
+  // already grouped into sections — but never written: it belongs to that
+  // binary and stores a different shape than the raw dump. The plugin writes
+  // its own.
+  readonly property string sharedCache: "/tmp/kb-nvim-cache.json"
+  readonly property string dumpPath: "/tmp/omarchy-keybinds-nvim-dump.json"
   readonly property string nvimDumpLua:
     'local out = {} ' +
     'for _, mode in ipairs({"n", "i", "v", "x"}) do ' +
@@ -391,10 +396,26 @@ Item {
     }
   }
 
+  function neovimTabFrom(sections) {
+    root.upsertTab({
+      app: "Neovim",
+      aliases: ["vim", "editor"],
+      windowClass: [],
+      sections: sections
+    }, 99)
+    root.nvimLoaded = true
+    return true
+  }
+
+  // Accepts either shape: keybinds-tui's cache is already grouped into
+  // `{name, binds}` sections, while our own dump is the raw keymap list.
   function buildNeovimTab(raw) {
     var entries = []
     try { entries = JSON.parse(raw) } catch (e) { return false }
     if (!entries.length) return false
+
+    if (entries[0].name !== undefined && entries[0].binds !== undefined)
+      return root.neovimTabFrom(entries)
 
     var byMode = {}
     var order = []
@@ -408,15 +429,11 @@ Item {
       byMode[mode].push({ keys: entry.lhs, action: action })
     }
 
+    if (order.length === 0) return false
     order.sort()
-    root.upsertTab({
-      app: "Neovim",
-      aliases: ["vim", "editor"],
-      windowClass: [],
-      sections: order.map(function (mode) { return { name: mode, binds: byMode[mode] } })
-    }, 99)
-    root.nvimLoaded = true
-    return true
+    return root.neovimTabFrom(order.map(function (mode) {
+      return { name: mode, binds: byMode[mode] }
+    }))
   }
 
   function loadNeovim() {
@@ -426,7 +443,7 @@ Item {
 
   FileView {
     id: nvimCacheFile
-    path: root.nvimCache
+    path: root.sharedCache
     onLoaded: {
       if (!root.buildNeovimTab(text())) nvimDump.running = true
     }
@@ -438,7 +455,7 @@ Item {
   Process {
     id: nvimDump
     command: ["timeout", "8", "nvim", "--headless", "-c", "lua " + root.nvimDumpLua]
-    environment: ({ "KB_NVIM_DUMP": root.nvimCache })
+    environment: ({ "KB_NVIM_DUMP": root.dumpPath })
     onExited: function (code, status) {
       nvimCacheAfterDump.reload()
     }
@@ -446,7 +463,7 @@ Item {
 
   FileView {
     id: nvimCacheAfterDump
-    path: root.nvimCache
+    path: root.dumpPath
     onLoaded: {
       if (!root.buildNeovimTab(text()))
         root.upsertTab(root.placeholderNeovimTab("no keymaps found in the nvim dump"), 99)

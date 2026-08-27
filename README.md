@@ -68,8 +68,10 @@ omarchy restart shell
 Hyprland and Quickshell, both of which Omarchy already provides. `nvim` is
 optional: without it the Neovim tab says so and every other tab still works.
 
-The Neovim dump is cached in `/tmp/kb-nvim-cache.json`, shared with
-`keybinds-tui` so whichever ran last warms the other.
+The Neovim keymaps are dumped in the background on first open. If
+`keybinds-tui` has run recently its cache in `/tmp/kb-nvim-cache.json` is
+reused, skipping the dump; the plugin only ever reads that file and writes
+its own.
 
 ## Terminal version
 
