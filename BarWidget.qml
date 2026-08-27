@@ -34,6 +34,7 @@ BarWidget {
   property int popupOpens: 0
   readonly property int tipOpenLimit: 3
   readonly property bool showBindTip: root.service
+    && root.service.bindingsReady
     && !root.service.keybindConfigured
     && root.popupOpens <= root.tipOpenLimit
 

@@ -75,14 +75,22 @@ Item {
 
   property bool keybindConfigured: false
 
+  // The files are read asynchronously, so a surface opening right after a
+  // shell restart would otherwise see "no keybind" and suggest one to someone
+  // who already has it. Wait until both have been accounted for.
+  property int bindingsScanned: 0
+  readonly property bool bindingsReady: root.bindingsScanned >= 2
+
   function noteBindings(text) {
     if (String(text || "").indexOf("harbefas.keybinds") >= 0) root.keybindConfigured = true
+    root.bindingsScanned += 1
   }
 
   FileView {
     path: Quickshell.env("HOME") + "/.config/hypr/bindings.lua"
     watchChanges: true
     onLoaded: root.noteBindings(text())
+    onLoadFailed: root.bindingsScanned += 1
   }
 
   // Pre-Quattro setups still keep their bindings here.
@@ -90,6 +98,7 @@ Item {
     path: Quickshell.env("HOME") + "/.config/hypr/bindings.conf"
     watchChanges: true
     onLoaded: root.noteBindings(text())
+    onLoadFailed: root.bindingsScanned += 1
   }
 
   // ------------------------------------------------------------------- ipc
