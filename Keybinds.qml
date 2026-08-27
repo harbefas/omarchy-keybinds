@@ -21,6 +21,9 @@ Item {
   property var manifest: null
 
   property bool opened: false
+  // Without an explicit screen the layer surface lands on whichever output
+  // Quickshell picked first, which is rarely the one being looked at.
+  property var targetScreen: null
   property string filterText: ""
   // Selection is held by app name, not index: tabs arrive asynchronously and
   // re-sort as they land, so an index goes stale between open() and the last
@@ -59,7 +62,18 @@ Item {
 
   // ---------------------------------------------------------------- lifecycle
 
+  function currentScreen() {
+    var name = ""
+    try { name = Hyprland.focusedMonitor.name } catch (e) { name = "" }
+    if (!name) return null
+    var screens = Quickshell.screens
+    for (var i = 0; i < screens.length; i++)
+      if (screens[i].name === name) return screens[i]
+    return null
+  }
+
   function open(payloadJson) {
+    root.targetScreen = root.currentScreen()
     root.opened = true
     root.filterText = ""
     root.selectedIndex = 0
@@ -519,6 +533,7 @@ Item {
 
   PanelWindow {
     id: panel
+    screen: root.targetScreen
     visible: root.opened
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
