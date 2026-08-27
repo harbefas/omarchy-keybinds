@@ -10,7 +10,8 @@ BarWidget {
   id: root
   moduleName: "harbefas.keybinds"
 
-  readonly property var service: bar && bar.shell && typeof bar.shell.serviceFor === "function"
+  // Not readonly: the shell may assign this on load.
+  property var service: bar && bar.shell && typeof bar.shell.serviceFor === "function"
     ? bar.shell.serviceFor("harbefas.keybinds") : null
   readonly property var tabs: service ? service.tabs : []
 
@@ -54,7 +55,7 @@ BarWidget {
     root.pendingG = false
     root.selectedIndex = 0
     root.popupOpen = true
-    Qt.callLater(function () { rowList.forceActiveFocus() })
+    Qt.callLater(function () { keyCatcher.forceActiveFocus() })
   }
 
   function closePopup() {
@@ -105,60 +106,17 @@ BarWidget {
     root.selectedIndex = 0
   }
 
-  function handleKey(event) {
-    event.accepted = true
+  function beginSearch() {
+    root.mode = "search"
+    root.pendingG = false
+    Qt.callLater(function () { searchField.forceActiveFocus() })
+  }
 
-    // Arrows and Tab keep working in every mode, for anyone who does not
-    // reach for the vim keys.
-    if (event.key === Qt.Key_Down) { root.select(1); return }
-    if (event.key === Qt.Key_Up) { root.select(-1); return }
-    if (event.key === Qt.Key_Right
-        || (event.key === Qt.Key_Tab && !(event.modifiers & Qt.ShiftModifier))) {
-      root.selectTab(1); return
-    }
-    if (event.key === Qt.Key_Left || event.key === Qt.Key_Backtab
-        || (event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier))) {
-      root.selectTab(-1); return
-    }
-
-    if (event.key === Qt.Key_Escape) {
-      if (root.mode !== "normal") {
-        root.mode = "normal"
-        root.setFilter("")
-      } else root.closePopup()
-      return
-    }
-    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { root.openFull(); return }
-
-    if (root.mode === "normal") {
-      switch (event.text) {
-      case "h": root.selectTab(-1); return
-      case "l": root.selectTab(1); return
-      case "j": root.select(1); return
-      case "k": root.select(-1); return
-      case "G": root.selectEdge(false); return
-      case "/": root.mode = "search"; root.setFilter(""); root.pendingG = false; return
-      case "q": root.closePopup(); return
-      case "g":
-        if (root.pendingG) { root.pendingG = false; root.selectEdge(true) }
-        else root.pendingG = true
-        return
-      }
-      root.pendingG = false
-      return
-    }
-
-    // search mode
-    if (event.key === Qt.Key_Backspace) {
-      if (!root.filterText) root.mode = "normal"
-      else root.setFilter(root.filterText.slice(0, -1))
-      return
-    }
-    if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32) {
-      root.setFilter(root.filterText + event.text)
-      return
-    }
-    event.accepted = false
+  function endSearch() {
+    root.mode = "normal"
+    searchField.text = ""
+    root.setFilter("")
+    Qt.callLater(function () { keyCatcher.forceActiveFocus() })
   }
 
   // Register with the service so the popup can be opened over IPC too.
@@ -193,176 +151,214 @@ BarWidget {
     bar: root.bar
     owner: root
     open: root.popupOpen
-    focusTarget: rowList
+    focusTarget: keyCatcher
     contentWidth: fittedContentWidth(Style.space(420))
     contentHeight: fittedContentHeight(contentColumn.implicitHeight)
 
-    Column {
-      id: contentColumn
+    PanelKeyCatcher {
+      id: keyCatcher
       anchors.fill: parent
-      spacing: Style.space(8)
+      // While searching the field owns every key, or "h" would navigate
+      // instead of being typed.
+      blocked: searchField.visible && searchField.activeFocus
 
-      // One scrolling line rather than a wrapping block: the popup is narrow
-      // and a second row of tabs costs more space than the binds it hides.
-      ListView {
-        id: tabStrip
-        width: parent.width
-        height: Style.space(22)
-        orientation: ListView.Horizontal
-        clip: true
-        spacing: Style.spacing.xs
-        model: root.tabs
-        currentIndex: root.activeTab
-        // Keep the selected tab in view when it is reached with Tab.
-        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+      onMoveRequested: function (dx, dy) {
+        if (dy !== 0) root.select(dy)
+        else if (dx !== 0) root.selectTab(dx)
+      }
+      onTabRequested: function (direction) { root.selectTab(direction) }
+      onActivateRequested: root.openFull()
+      onCloseRequested: root.closePopup()
+      onTextKey: function (text) {
+        if (text === "/") { root.beginSearch(); return }
+        if (text === "q") { root.closePopup(); return }
+        if (text === "G") { root.selectEdge(false); root.pendingG = false; return }
+        if (text === "g") {
+          if (root.pendingG) { root.pendingG = false; root.selectEdge(true) }
+          else root.pendingG = true
+          return
+        }
+        root.pendingG = false
+      }
 
-        delegate: Rectangle {
-          required property var modelData
-          required property int index
-          radius: Style.cornerRadius
-          height: tabStrip.height
-          width: tabLabel.implicitWidth + Style.spacing.controlPaddingX
-          color: index === root.activeTab ? Color.menu.selectedBackground : "transparent"
+      Column {
+        id: contentColumn
+        anchors.fill: parent
+        spacing: Style.space(8)
 
-          Text {
-            id: tabLabel
-            anchors.centerIn: parent
-            text: modelData.app
-            textFormat: Text.PlainText
-            color: index === root.activeTab ? root.accent : root.secondary
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            font.bold: index === root.activeTab
-          }
-
-          MouseArea {
-            anchors.fill: parent
-            onClicked: {
-              root.activeApp = modelData.app
-              root.selectedIndex = 0
+        TextField {
+          id: searchField
+          width: parent.width
+          visible: root.mode === "search"
+          foreground: root.foreground
+          placeholderText: "Search binds…"
+          onTextChanged: root.setFilter(text)
+          Keys.priority: Keys.BeforeItem
+          Keys.onPressed: function (event) {
+            if (event.key === Qt.Key_Escape) {
+              root.endSearch()
+              event.accepted = true
+            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+              root.openFull()
+              event.accepted = true
             }
           }
         }
-      }
 
-      ListView {
-        id: rowList
-        width: parent.width
-        height: Math.min(Style.space(280), Math.max(Style.space(60), root.rows.length * Style.space(22)))
-        clip: true
-        model: root.rows
-        currentIndex: root.selectedIndex
-        focus: true
-
-        Keys.priority: Keys.BeforeItem
-        Keys.onPressed: function (event) { root.handleKey(event) }
-
-        delegate: Rectangle {
-          required property var modelData
-          required property int index
-          width: rowList.width
+        // One scrolling line rather than a wrapping block: the popup is narrow
+        // and a second row of tabs costs more space than the binds it hides.
+        ListView {
+          id: tabStrip
+          width: parent.width
           height: Style.space(22)
-          color: index === root.selectedIndex ? Color.menu.selectedBackground : "transparent"
-          radius: Style.cornerRadius
+          orientation: ListView.Horizontal
+          clip: true
+          spacing: Style.spacing.xs
+          model: root.tabs
+          currentIndex: root.activeTab
+          // Keep the selected tab in view when it is reached with h/l.
+          onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
 
-          Row {
-            anchors.fill: parent
-            anchors.leftMargin: Style.spacing.sm
-            spacing: 0
-
-            Text {
-              width: Math.round(parent.width * 0.38)
-              rightPadding: Style.spacing.sm
-              anchors.verticalCenter: parent.verticalCenter
-              text: modelData.keys
-              textFormat: Text.PlainText
-              color: root.accent
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              elide: Text.ElideRight
-            }
+          delegate: Rectangle {
+            required property var modelData
+            required property int index
+            radius: Style.cornerRadius
+            height: tabStrip.height
+            width: tabLabel.implicitWidth + Style.spacing.controlPaddingX
+            color: index === root.activeTab ? Color.menu.selectedBackground : "transparent"
 
             Text {
-              width: parent.width - Math.round(parent.width * 0.38) - Style.spacing.sm
-              anchors.verticalCenter: parent.verticalCenter
-              text: modelData.action
+              id: tabLabel
+              anchors.centerIn: parent
+              text: modelData.app
               textFormat: Text.PlainText
-              color: root.foreground
+              color: index === root.activeTab ? root.accent : root.secondary
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
-              elide: Text.ElideRight
+              font.bold: index === root.activeTab
             }
-          }
 
-          MouseArea {
-            anchors.fill: parent
-            onClicked: root.selectedIndex = index
-            onDoubleClicked: root.openFull()
+            MouseArea {
+              anchors.fill: parent
+              onClicked: {
+                root.activeApp = modelData.app
+                root.selectedIndex = 0
+              }
+            }
           }
         }
-      }
 
-      Text {
-        width: parent.width
-        visible: root.rows.length === 0
-        text: root.tabs.length === 0 ? "loading…" : "no match"
-        textFormat: Text.PlainText
-        color: root.secondary
-        font.family: Style.font.family
-        font.pixelSize: Style.font.bodySmall
-      }
+        ListView {
+          id: rowList
+          width: parent.width
+          height: Math.min(Style.space(280), Math.max(Style.space(60), root.rows.length * Style.space(22)))
+          clip: true
+          model: root.rows
+          currentIndex: root.selectedIndex
 
-      // Hints on the left, a clickable way out on the right: the popup is
-      // reachable by mouse, so the handoff to the full view has to be too.
-      Item {
-        width: parent.width
-        height: Math.max(hints.implicitHeight, fullButton.implicitHeight)
+          delegate: Rectangle {
+            required property var modelData
+            required property int index
+            width: rowList.width
+            height: Style.space(22)
+            color: index === root.selectedIndex ? Color.menu.selectedBackground : "transparent"
+            radius: Style.cornerRadius
+
+            Row {
+              anchors.fill: parent
+              anchors.leftMargin: Style.spacing.sm
+              spacing: 0
+
+              Text {
+                width: Math.round(parent.width * 0.38)
+                rightPadding: Style.spacing.sm
+                anchors.verticalCenter: parent.verticalCenter
+                text: modelData.keys
+                textFormat: Text.PlainText
+                color: root.accent
+                font.family: Style.font.family
+                font.pixelSize: Style.font.bodySmall
+                elide: Text.ElideRight
+              }
+
+              Text {
+                width: parent.width - Math.round(parent.width * 0.38) - Style.spacing.sm
+                anchors.verticalCenter: parent.verticalCenter
+                text: modelData.action
+                textFormat: Text.PlainText
+                color: root.foreground
+                font.family: Style.font.family
+                font.pixelSize: Style.font.bodySmall
+                elide: Text.ElideRight
+              }
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              onClicked: root.selectedIndex = index
+              onDoubleClicked: root.openFull()
+            }
+          }
+        }
 
         Text {
-          id: hints
-          anchors.left: parent.left
-          anchors.right: fullButton.left
-          anchors.rightMargin: Style.spacing.sm
-          anchors.verticalCenter: parent.verticalCenter
-          // Only what the popup itself needs; the full overlay lists the rest
-          // in its own footer, and a hint that elides teaches nothing.
-          text: root.mode === "search"
-                ? "/ " + root.filterText
-                : "h/l tabs · j/k nav · / search"
+          width: parent.width
+          visible: root.rows.length === 0
+          text: root.tabs.length === 0 ? "loading…" : "no match"
           textFormat: Text.PlainText
-          color: root.mode === "search" ? root.accent : root.secondary
+          color: root.secondary
           font.family: Style.font.family
-          font.pixelSize: Style.font.caption
-          elide: Text.ElideRight
+          font.pixelSize: Style.font.bodySmall
         }
 
-        Rectangle {
-          id: fullButton
-          anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
-          radius: Style.cornerRadius
-          implicitWidth: fullLabel.implicitWidth + Style.spacing.controlPaddingX
-          implicitHeight: fullLabel.implicitHeight + Style.spacing.xs * 2
-          color: fullArea.containsMouse ? Color.menu.selectedBackground : "transparent"
-          border.color: root.secondary
-          border.width: 1
+        // Hints on the left, a clickable way out on the right: the popup is
+        // reachable by mouse, so the handoff to the full view has to be too.
+        Item {
+          width: parent.width
+          height: Math.max(hints.implicitHeight, fullButton.implicitHeight)
 
           Text {
-            id: fullLabel
-            anchors.centerIn: parent
-            text: "Full view  ⏎"
+            id: hints
+            anchors.left: parent.left
+            anchors.right: fullButton.left
+            anchors.rightMargin: Style.spacing.sm
+            anchors.verticalCenter: parent.verticalCenter
+            text: "h/l tabs · j/k nav · / search"
             textFormat: Text.PlainText
-            color: fullArea.containsMouse ? root.accent : root.secondary
+            color: root.secondary
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
+            elide: Text.ElideRight
           }
 
-          MouseArea {
-            id: fullArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.openFull()
+          Rectangle {
+            id: fullButton
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            radius: Style.cornerRadius
+            implicitWidth: fullLabel.implicitWidth + Style.spacing.controlPaddingX
+            implicitHeight: fullLabel.implicitHeight + Style.spacing.xs * 2
+            color: fullArea.containsMouse ? Color.menu.selectedBackground : "transparent"
+            border.color: root.secondary
+            border.width: 1
+
+            Text {
+              id: fullLabel
+              anchors.centerIn: parent
+              text: "Full view  \u23ce"
+              textFormat: Text.PlainText
+              color: fullArea.containsMouse ? root.accent : root.secondary
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+            }
+
+            MouseArea {
+              id: fullArea
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.openFull()
+            }
           }
         }
       }

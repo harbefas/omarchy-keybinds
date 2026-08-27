@@ -18,7 +18,9 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property var service: root.shell && typeof root.shell.serviceFor === "function"
+  // Not readonly: the shell assigns this on load, and a readonly binding makes
+  // that assignment fail, which aborts the rest of its onLoaded handler.
+  property var service: root.shell && typeof root.shell.serviceFor === "function"
     ? root.shell.serviceFor("harbefas.keybinds") : null
   readonly property var tabs: root.service ? root.service.tabs : []
 
