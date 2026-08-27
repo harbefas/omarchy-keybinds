@@ -31,6 +31,10 @@ Reading Hyprland through `hyprctl` rather than parsing `~/.config/hypr/*.conf`
 means binds pulled in through any include show up too, along with the submap
 each belongs to.
 
+Tabs only appear for tools you actually have: each bundled table names the
+binaries it belongs to, and one `which` at startup decides. Hyprland and Neovim
+name none and always show.
+
 ## Keys
 
 | Key | Action |
@@ -54,10 +58,17 @@ Search matches multiple words in any order, as substrings or fuzzily, so
 omarchy plugin add https://github.com/harbefas/omarchy-keybinds --enable
 ```
 
-Bind it to a key in `~/.config/hypr/bindings.conf`:
+Bind it to a key. On Omarchy Quattro the bindings live in
+`~/.config/hypr/bindings.lua`:
+
+```lua
+o.bind("SUPER + SHIFT + H", "Keybindings", "omarchy-shell shell summon harbefas.keybinds")
+```
+
+On older setups still using `~/.config/hypr/bindings.conf`:
 
 ```
-bindd = SUPER, slash, Keybindings, exec, omarchy-shell shell summon harbefas.keybinds
+bindd = SUPER SHIFT, H, Keybindings, exec, omarchy-shell shell summon harbefas.keybinds
 ```
 
 Then reload:
@@ -92,3 +103,7 @@ dump in `/tmp`.
 ## License
 
 MIT
+
+## Preview
+
+![Keybinds overlay](preview.png)
