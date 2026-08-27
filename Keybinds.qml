@@ -22,7 +22,14 @@ Item {
 
   property bool opened: false
   property string filterText: ""
-  property int activeTab: 0
+  // Selection is held by app name, not index: tabs arrive asynchronously and
+  // re-sort as they land, so an index goes stale between open() and the last
+  // source resolving.
+  property string activeApp: ""
+  readonly property int activeTab: {
+    var at = tabIndexByApp(root.activeApp)
+    return at >= 0 ? at : 0
+  }
   property int selectedIndex: 0
 
   // Every tab: { app, aliases: [], windowClass: [], sections: [{name, binds}] }.
@@ -54,7 +61,7 @@ Item {
     root.opened = true
     root.filterText = ""
     root.selectedIndex = 0
-    root.activeTab = guessTabForFocus()
+    root.activeApp = guessAppForFocus()
     root.refreshHyprland()
     root.loadNeovim()
     root.rebuildRows()
@@ -98,24 +105,26 @@ Item {
 
     next.sort(function (a, b) { return a.order - b.order })
     root.tabs = next
+    if (!root.activeApp && next.length > 0) root.activeApp = next[0].app
     root.rebuildRows()
   }
 
   // The overlay takes keyboard focus as a layer surface, not a toplevel, so
   // the active toplevel is still whatever the user was in. No env-var handoff
   // needed, unlike the terminal build.
-  function guessTabForFocus() {
+  function guessAppForFocus() {
+    var fallback = root.tabs.length > 0 ? root.tabs[0].app : ""
     var toplevel = null
     try { toplevel = ToplevelManager.activeToplevel } catch (e) { toplevel = null }
-    if (!toplevel) return 0
+    if (!toplevel) return fallback
 
     var appId = (toplevel.appId || "").toLowerCase()
-    if (!appId) return 0
+    if (!appId) return fallback
 
     for (var i = 0; i < root.tabs.length; i++) {
       var classes = root.tabs[i].windowClass || []
       for (var c = 0; c < classes.length; c++)
-        if (appId.indexOf(classes[c].toLowerCase()) >= 0) return i
+        if (appId.indexOf(classes[c].toLowerCase()) >= 0) return root.tabs[i].app
     }
 
     // A terminal window says nothing about which TUI is running inside it, so
@@ -125,7 +134,7 @@ Item {
     })) {
       terminalProbe.running = true
     }
-    return 0
+    return fallback
   }
 
   // ------------------------------------------------------------------- rows
@@ -139,7 +148,7 @@ Item {
     var split = KeybindSearch.splitAtTab(root.filterText)
     if (split.tab) {
       var target = matchTabToken(split.tab)
-      if (target >= 0 && target !== root.activeTab) root.activeTab = target
+      if (target >= 0 && target !== root.activeTab) root.activeApp = root.tabs[target].app
     }
 
     var tab = currentTab()
@@ -185,7 +194,8 @@ Item {
 
   function selectTab(delta) {
     if (root.tabs.length === 0) return
-    root.activeTab = (root.activeTab + delta + root.tabs.length) % root.tabs.length
+    var next = (root.activeTab + delta + root.tabs.length) % root.tabs.length
+    root.activeApp = root.tabs[next].app
     root.selectedIndex = 0
     root.rebuildRows()
   }
@@ -477,8 +487,7 @@ Item {
       var pid = queue.pop()
       var app = root.terminalApps[names[pid]]
       if (app) {
-        var index = root.tabIndexByApp(app)
-        if (index >= 0) { root.activeTab = index; root.rebuildRows() }
+        if (root.tabIndexByApp(app) >= 0) { root.activeApp = app; root.rebuildRows() }
         return
       }
       if (children[pid]) queue = queue.concat(children[pid])
@@ -554,7 +563,7 @@ Item {
 
         Column {
           anchors.fill: parent
-          spacing: Style.spacing.md
+          spacing: Style.spacing.lg
 
           // Tab strip
           Flow {
@@ -585,7 +594,7 @@ Item {
                 MouseArea {
                   anchors.fill: parent
                   onClicked: {
-                    root.activeTab = index
+                    root.activeApp = modelData.app
                     root.selectedIndex = 0
                     root.rebuildRows()
                   }
