@@ -312,18 +312,59 @@ BarWidget {
         font.pixelSize: Style.font.bodySmall
       }
 
-      Text {
+      // Hints on the left, a clickable way out on the right: the popup is
+      // reachable by mouse, so the handoff to the full view has to be too.
+      Item {
         width: parent.width
-        // Only what the popup itself needs; the full overlay lists the rest
-        // in its own footer, and a hint that elides teaches nothing.
-        text: root.mode === "search"
-              ? "/ " + root.filterText
-              : "h/l tabs · j/k nav · / search · Enter full"
-        textFormat: Text.PlainText
-        color: root.mode === "search" ? root.accent : root.secondary
-        font.family: Style.font.family
-        font.pixelSize: Style.font.caption
-        elide: Text.ElideRight
+        height: Math.max(hints.implicitHeight, fullButton.implicitHeight)
+
+        Text {
+          id: hints
+          anchors.left: parent.left
+          anchors.right: fullButton.left
+          anchors.rightMargin: Style.spacing.sm
+          anchors.verticalCenter: parent.verticalCenter
+          // Only what the popup itself needs; the full overlay lists the rest
+          // in its own footer, and a hint that elides teaches nothing.
+          text: root.mode === "search"
+                ? "/ " + root.filterText
+                : "h/l tabs · j/k nav · / search"
+          textFormat: Text.PlainText
+          color: root.mode === "search" ? root.accent : root.secondary
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+          elide: Text.ElideRight
+        }
+
+        Rectangle {
+          id: fullButton
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          radius: Style.cornerRadius
+          implicitWidth: fullLabel.implicitWidth + Style.spacing.controlPaddingX
+          implicitHeight: fullLabel.implicitHeight + Style.spacing.xs * 2
+          color: fullArea.containsMouse ? Color.menu.selectedBackground : "transparent"
+          border.color: root.secondary
+          border.width: 1
+
+          Text {
+            id: fullLabel
+            anchors.centerIn: parent
+            text: "Full view  ⏎"
+            textFormat: Text.PlainText
+            color: fullArea.containsMouse ? root.accent : root.secondary
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+          }
+
+          MouseArea {
+            id: fullArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.openFull()
+          }
+        }
       }
     }
   }

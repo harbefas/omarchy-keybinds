@@ -8,8 +8,9 @@ Two surfaces, sharing one service so the binds are read once:
 
 - a **bar widget** — click the icon for a compact keys-and-actions popup you
   can still tab through and search
-- a **full overlay** — adds the sections column and vim-style navigation,
-  reached with `Enter` or right-click from the popup, or from a keybind
+- a **full overlay** — adds the sections column and the rest of the keys,
+  reached from the popup with `Enter`, the **Full view** button, or a
+  right-click on the bar icon
 
 A hardcoded list of keybindings is a second copy of a fact the config already
 knows, and second copies drift. The tabs that can be read live are read live,
@@ -53,7 +54,7 @@ name none and always show.
 | `/` | search the active tab |
 | `w` | which-key narrowing: type the chord to filter by it (overlay) |
 | `@name` | jump to a tab by name or alias, e.g. `@vim scroll` (overlay) |
-| `Enter` | open the full overlay (popup) |
+| `Enter`, **Full view** button | open the full overlay (popup) |
 | `Esc` | leave search or which-key, then close |
 | `q` | close |
 
@@ -75,17 +76,18 @@ Add the widget to the bar:
 omarchy bar move harbefas.keybinds --section right
 ```
 
-Bind the full overlay to a key. On Omarchy Quattro the bindings live in
+Bind the popup to a key. On Omarchy Quattro the bindings live in
 `~/.config/hypr/bindings.lua`:
 
 ```lua
-o.bind("SUPER + SHIFT + H", "Keybindings", "omarchy-shell shell summon harbefas.keybinds")
+o.bind("SUPER + SHIFT + H", "Keybinds", "omarchy-shell harbefas.keybinds.widget toggle")
 ```
 
-The popup has its own IPC target, if you would rather bind that:
+The popup is the entry point; `Enter` or the **Full view** button opens the
+overlay from there. To bind the overlay directly as well:
 
 ```lua
-o.bind("SUPER + K", "Keybinds popup", "omarchy-shell harbefas.keybinds.widget toggle")
+o.bind("SUPER + SHIFT + K", "Keybinds full", "omarchy-shell shell summon harbefas.keybinds")
 ```
 
 On older setups still using `~/.config/hypr/bindings.conf`:
