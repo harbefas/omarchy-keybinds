@@ -671,7 +671,7 @@ Item {
 
         Column {
           anchors.top: parent.top
-          anchors.topMargin: Style.spacing.md
+          anchors.topMargin: Style.spacing.lg
           anchors.left: parent.left
           anchors.right: parent.right
           anchors.bottom: footer.top
