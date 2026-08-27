@@ -774,7 +774,7 @@ Item {
           leftPadding: Style.spacing.sm
           text: root.filterText
                 ? "/ " + root.filterText
-                : "Tab switch tab · ↑/↓ navigate · type to search · @tab to jump · Esc close"
+                : "Tab switch · ↑/↓ navigate · type to search · @tab to jump · Esc close"
           color: root.filterText ? root.accent : root.foreground
           opacity: root.filterText ? 1.0 : 0.5
           font.family: root.fontFamily
