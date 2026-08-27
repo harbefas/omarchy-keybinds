@@ -24,7 +24,12 @@ Item {
   // Without an explicit screen the layer surface lands on whichever output
   // Quickshell picked first, which is rarely the one being looked at.
   property var targetScreen: null
+  // Input is modal like the terminal build: normal keys navigate, `/` opens
+  // search, `w` opens which-key narrowing.
+  property string mode: "normal"
   property string filterText: ""
+  property bool pendingG: false
+  readonly property int halfPage: 10
   // Selection is held by app name, not index: tabs arrive asynchronously and
   // re-sort as they land, so an index goes stale between open() and the last
   // source resolving.
@@ -46,7 +51,13 @@ Item {
   property color background: Color.menu.background
   property color foreground: Color.menu.text
   property color border: Color.menu.border
-  property var borderSpec: Border.surfaceSpec("menu", "border", border, Math.max(1, Style.space(2)))
+  // The theme's [menu] border is often near-black, which reads as a drop
+  // shadow around the card rather than a frame. Keep the theme's widths and
+  // paint it in the accent, as the terminal build does.
+  property var borderSpec: {
+    var spec = Border.surfaceSpec("menu", "border", root.accent, Math.max(1, Style.space(2)))
+    return { color: root.accent, widths: spec.widths, gradient: null }
+  }
   property color scrim: Color.menu.scrim
   property color selectedBackground: Color.menu.selectedBackground
   property color selectedText: Color.menu.selectedText
@@ -75,7 +86,9 @@ Item {
   function open(payloadJson) {
     root.targetScreen = root.currentScreen()
     root.opened = true
+    root.mode = "normal"
     root.filterText = ""
+    root.pendingG = false
     root.selectedIndex = 0
     root.activeApp = guessAppForFocus()
     root.refreshHyprland()
@@ -182,8 +195,12 @@ Item {
       }
     }
 
-    var query = split.tab ? split.rest : root.filterText
-    root.visibleRows = KeybindSearch.filterBinds(flat, (tab.aliases || []).join(" "), query)
+    if (root.mode === "whichkey") {
+      root.visibleRows = KeybindSearch.whichKeyFilter(flat, root.filterText)
+    } else {
+      var query = split.tab ? split.rest : root.filterText
+      root.visibleRows = KeybindSearch.filterBinds(flat, (tab.aliases || []).join(" "), query)
+    }
 
     if (root.selectedIndex >= root.visibleRows.length)
       root.selectedIndex = Math.max(0, root.visibleRows.length - 1)
@@ -220,6 +237,27 @@ Item {
     if (root.visibleRows.length === 0) return
     root.selectedIndex = (root.selectedIndex + delta + root.visibleRows.length) % root.visibleRows.length
     resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+  }
+
+  // Clamped rather than wrapping, as a half-page jump should behave.
+  function selectBy(delta) {
+    if (root.visibleRows.length === 0) return
+    root.selectedIndex = Math.max(0, Math.min(root.visibleRows.length - 1, root.selectedIndex + delta))
+    resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+  }
+
+  function selectEdge(top) {
+    if (root.visibleRows.length === 0) return
+    root.selectedIndex = top ? 0 : root.visibleRows.length - 1
+    resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+  }
+
+  function enterMode(next) {
+    root.mode = next
+    root.filterText = ""
+    root.selectedIndex = 0
+    root.pendingG = false
+    root.rebuildRows()
   }
 
   // ------------------------------------------------------- static data files
@@ -571,24 +609,64 @@ Item {
 
         Keys.priority: Keys.BeforeItem
         Keys.onPressed: function (event) {
-          if (event.key === Qt.Key_Escape) {
-            if (root.filterText) root.setFilter("")
-            else root.dismiss()
-            event.accepted = true
-          } else if (event.key === Qt.Key_Down || (event.key === Qt.Key_N && (event.modifiers & Qt.ControlModifier))) {
-            root.select(1); event.accepted = true
-          } else if (event.key === Qt.Key_Up || (event.key === Qt.Key_P && (event.modifiers & Qt.ControlModifier))) {
-            root.select(-1); event.accepted = true
-          } else if (event.key === Qt.Key_Right || (event.key === Qt.Key_Tab && !(event.modifiers & Qt.ShiftModifier))) {
-            root.selectTab(1); event.accepted = true
-          } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Backtab
-                     || (event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier))) {
-            root.selectTab(-1); event.accepted = true
-          } else if (event.key === Qt.Key_Backspace) {
-            root.setFilter(root.filterText.slice(0, -1)); event.accepted = true
-          } else if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32) {
-            root.setFilter(root.filterText + event.text); event.accepted = true
+          event.accepted = true
+          var ctrl = (event.modifiers & Qt.ControlModifier) !== 0
+
+          // Arrows and Tab work in every mode, so the overlay stays usable
+          // without knowing the vim bindings.
+          if (event.key === Qt.Key_Down) { root.select(1); return }
+          if (event.key === Qt.Key_Up) { root.select(-1); return }
+          if (event.key === Qt.Key_Right) { root.selectTab(1); return }
+          if (event.key === Qt.Key_Left || event.key === Qt.Key_Backtab) { root.selectTab(-1); return }
+          if (event.key === Qt.Key_Tab) {
+            root.selectTab((event.modifiers & Qt.ShiftModifier) ? -1 : 1)
+            return
           }
+
+          if (event.key === Qt.Key_Escape) {
+            if (root.mode !== "normal") root.enterMode("normal")
+            else root.dismiss()
+            return
+          }
+
+          if (root.mode === "normal") {
+            if (ctrl && event.key === Qt.Key_D) { root.selectBy(root.halfPage); return }
+            if (ctrl && event.key === Qt.Key_U) { root.selectBy(-root.halfPage); return }
+
+            switch (event.text) {
+            case "h": root.selectTab(-1); return
+            case "l": root.selectTab(1); return
+            case "j": root.select(1); return
+            case "k": root.select(-1); return
+            case "G": root.selectEdge(false); return
+            case "/": root.enterMode("search"); return
+            case "w": root.enterMode("whichkey"); return
+            case "q": root.dismiss(); return
+            case "g":
+              // `gg` jumps to the top; a lone `g` waits for the second press.
+              if (root.pendingG) { root.pendingG = false; root.selectEdge(true) }
+              else root.pendingG = true
+              return
+            }
+            root.pendingG = false
+            return
+          }
+
+          // search and which-key both type into filterText.
+          if (event.key === Qt.Key_Backspace) {
+            if (!root.filterText) root.enterMode("normal")
+            else root.setFilter(root.filterText.slice(0, -1))
+            return
+          }
+          if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            root.mode = "normal"
+            return
+          }
+          if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32) {
+            root.setFilter(root.filterText + event.text)
+            return
+          }
+          event.accepted = false
         }
 
         // Column widths mirror the terminal build's table: a narrow section
@@ -787,11 +865,13 @@ Item {
           anchors.right: parent.right
           anchors.bottom: parent.bottom
           leftPadding: Style.spacing.sm
-          text: root.filterText
-                ? "/ " + root.filterText
-                : "Tab switch · ↑/↓ navigate · type to search · @tab to jump · Esc close"
-          color: root.filterText ? root.accent : root.foreground
-          opacity: root.filterText ? 1.0 : 0.5
+          text: {
+            if (root.mode === "search") return "/ " + root.filterText
+            if (root.mode === "whichkey") return "w " + root.filterText
+            return "h/l switch tab · j/k navigate · Ctrl+d/u half page · gg/G top/bottom · / search · w which-key · q quit"
+          }
+          color: root.mode === "normal" ? root.foreground : root.accent
+          opacity: root.mode === "normal" ? 0.5 : 1.0
           font.family: root.fontFamily
           font.pixelSize: Style.font.bodySmall
           elide: Text.ElideRight
