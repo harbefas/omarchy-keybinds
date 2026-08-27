@@ -11,8 +11,8 @@ import "KeybindSearch.js" as KeybindSearch
 // matches whatever was focused when the overlay was summoned.
 //
 // Hyprland's binds come live from `hyprctl binds -j` and Neovim's from a
-// headless keymap dump; the rest are hand-copied defaults in data/*.json,
-// the same files keybinds-tui compiles in, so the two never drift.
+// headless keymap dump; the rest are hand-copied defaults in data/*.json.
+// Nothing outside Hyprland, Quickshell, and an optional nvim is needed.
 Item {
   id: root
 
@@ -360,14 +360,8 @@ Item {
 
   // ----------------------------------------------------------------- neovim
 
-  // The dump costs seconds on a plugin-heavy config, hence the placeholder
-  // tab and the background load.
-  //
-  // keybinds-tui's cache is read when it is warm — it holds the same keymaps,
-  // already grouped into sections — but never written: it belongs to that
-  // binary and stores a different shape than the raw dump. The plugin writes
-  // its own.
-  readonly property string sharedCache: "/tmp/kb-nvim-cache.json"
+  // The dump costs seconds on a plugin-heavy config, so the last one is kept
+  // and rendered immediately on open while a fresh dump runs behind it.
   readonly property string dumpPath: "/tmp/omarchy-keybinds-nvim-dump.json"
   readonly property string nvimDumpLua:
     'local out = {} ' +
@@ -407,15 +401,10 @@ Item {
     return true
   }
 
-  // Accepts either shape: keybinds-tui's cache is already grouped into
-  // `{name, binds}` sections, while our own dump is the raw keymap list.
   function buildNeovimTab(raw) {
     var entries = []
     try { entries = JSON.parse(raw) } catch (e) { return false }
     if (!entries.length) return false
-
-    if (entries[0].name !== undefined && entries[0].binds !== undefined)
-      return root.neovimTabFrom(entries)
 
     var byMode = {}
     var order = []
@@ -436,18 +425,22 @@ Item {
     }))
   }
 
+  // Renders the previous dump straight away, then refreshes it in the
+  // background so a config edit shows up on the next open.
+  property bool nvimDumpedThisSession: false
+
   function loadNeovim() {
-    if (root.nvimLoaded) return
-    nvimCacheFile.reload()
+    if (!root.nvimLoaded) previousDump.reload()
+    if (!root.nvimDumpedThisSession) {
+      root.nvimDumpedThisSession = true
+      nvimDump.running = true
+    }
   }
 
   FileView {
-    id: nvimCacheFile
-    path: root.sharedCache
-    onLoaded: {
-      if (!root.buildNeovimTab(text())) nvimDump.running = true
-    }
-    onLoadFailed: nvimDump.running = true
+    id: previousDump
+    path: root.dumpPath
+    onLoaded: root.buildNeovimTab(text())
   }
 
   // `timeout` guards against plugins that hang headless startup waiting on a
@@ -457,18 +450,21 @@ Item {
     command: ["timeout", "8", "nvim", "--headless", "-c", "lua " + root.nvimDumpLua]
     environment: ({ "KB_NVIM_DUMP": root.dumpPath })
     onExited: function (code, status) {
-      nvimCacheAfterDump.reload()
+      freshDump.reload()
     }
   }
 
   FileView {
-    id: nvimCacheAfterDump
+    id: freshDump
     path: root.dumpPath
     onLoaded: {
-      if (!root.buildNeovimTab(text()))
+      if (!root.buildNeovimTab(text()) && !root.nvimLoaded)
         root.upsertTab(root.placeholderNeovimTab("no keymaps found in the nvim dump"), 99)
     }
-    onLoadFailed: root.upsertTab(root.placeholderNeovimTab("failed to run `nvim --headless` (binary in PATH?)"), 99)
+    onLoadFailed: {
+      if (!root.nvimLoaded)
+        root.upsertTab(root.placeholderNeovimTab("failed to run `nvim --headless` (binary in PATH?)"), 99)
+    }
   }
 
   // --------------------------------------------------- terminal focus probe
@@ -578,126 +574,220 @@ Item {
           }
         }
 
+        // Column widths mirror the terminal build's table: a narrow section
+        // gutter, a key column wide enough for "Prefix + shift + n / alt",
+        // and the action taking whatever is left.
+        readonly property real sectionWidth: Math.round(width * 0.20)
+        readonly property real keysWidth: Math.round(width * 0.28)
+
         Column {
           anchors.fill: parent
-          spacing: Style.spacing.lg
+          spacing: Style.spacing.md
 
-          // Tab strip
-          Flow {
+          // Tab strip, framed and labelled like the TUI's bordered block.
+          Rectangle {
             width: parent.width
-            spacing: Style.spacing.sm
+            height: tabRow.height + Style.spacing.md * 2
+            color: "transparent"
+            border.color: root.border
+            border.width: 1
+            radius: root.cornerRadius
 
-            Repeater {
-              model: root.tabs
-
+            Text {
+              x: Style.spacing.md
+              y: -height / 2
+              leftPadding: Style.spacing.xs
+              rightPadding: Style.spacing.xs
+              text: "keybinds"
+              color: root.foreground
+              opacity: 0.55
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              // Sits on the border line, so it needs the card behind it.
               Rectangle {
-                required property var modelData
-                required property int index
-                radius: root.cornerRadius
-                color: index === root.activeTab ? root.selectedBackground : "transparent"
-                implicitWidth: tabLabel.implicitWidth + Style.spacing.controlPaddingX * 2
-                implicitHeight: tabLabel.implicitHeight + Style.spacing.controlPaddingY * 2
+                anchors.fill: parent
+                z: -1
+                color: root.background
+              }
+            }
 
-                Text {
-                  id: tabLabel
-                  anchors.centerIn: parent
-                  text: modelData.app
-                  color: index === root.activeTab ? root.selectedText : root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  opacity: index === root.activeTab ? 1.0 : 0.7
-                }
+            Row {
+              id: tabRow
+              anchors.centerIn: parent
+              spacing: 0
 
-                MouseArea {
-                  anchors.fill: parent
-                  onClicked: {
-                    root.activeApp = modelData.app
-                    root.selectedIndex = 0
-                    root.rebuildRows()
+              Repeater {
+                model: root.tabs
+
+                Row {
+                  required property var modelData
+                  required property int index
+                  spacing: 0
+
+                  Text {
+                    text: "  |  "
+                    visible: index > 0
+                    color: root.border
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                  }
+
+                  Text {
+                    text: modelData.app
+                    color: index === root.activeTab ? root.accent : root.foreground
+                    opacity: index === root.activeTab ? 1.0 : 0.65
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    font.bold: index === root.activeTab
+
+                    MouseArea {
+                      anchors.fill: parent
+                      onClicked: {
+                        root.activeApp = modelData.app
+                        root.selectedIndex = 0
+                        root.rebuildRows()
+                      }
+                    }
                   }
                 }
               }
             }
           }
 
-          // Search line
-          Text {
+          // Table
+          Rectangle {
             width: parent.width
-            text: root.filterText ? "/ " + root.filterText : "/ type to search, @tab to jump"
-            color: root.filterText ? root.accent : root.foreground
-            opacity: root.filterText ? 1.0 : 0.45
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.body
-            elide: Text.ElideRight
-          }
+            height: parent.height - y - footer.height - Style.spacing.md
+            color: "transparent"
+            border.color: root.border
+            border.width: 1
+            radius: root.cornerRadius
 
-          ListView {
-            id: resultList
-            width: parent.width
-            height: parent.height - y
-            clip: true
-            model: root.visibleRows
-            currentIndex: root.selectedIndex
-
-            delegate: Rectangle {
-              required property var modelData
-              required property int index
-              width: resultList.width
-              height: root.rowHeight
-              color: index === root.selectedIndex ? root.selectedBackground : "transparent"
-              radius: root.cornerRadius
+            Column {
+              anchors.fill: parent
+              anchors.margins: Style.spacing.md
+              spacing: Style.spacing.sm
 
               Row {
-                anchors.fill: parent
-                anchors.leftMargin: Style.spacing.sm
-                anchors.rightMargin: Style.spacing.sm
-                spacing: Style.spacing.md
+                width: parent.width
+                height: root.rowHeight
+                spacing: 0
 
                 Text {
-                  width: parent.width * 0.3
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: modelData.keys
-                  color: index === root.selectedIndex ? root.selectedText : root.accent
+                  width: keyCatcher.sectionWidth
+                  text: "Section"
+                  color: root.foreground
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.body
-                  elide: Text.ElideRight
+                  font.bold: true
                 }
-
                 Text {
-                  width: parent.width * 0.45
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: modelData.action
-                  color: index === root.selectedIndex ? root.selectedText : root.foreground
+                  width: keyCatcher.keysWidth
+                  text: "Key"
+                  color: root.foreground
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.body
-                  elide: Text.ElideRight
+                  font.bold: true
                 }
-
                 Text {
-                  width: parent.width * 0.2
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: modelData.section
-                  color: index === root.selectedIndex ? root.selectedText : root.foreground
-                  opacity: 0.5
-                  horizontalAlignment: Text.AlignRight
+                  text: "Action"
+                  color: root.foreground
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.bodySmall
-                  elide: Text.ElideRight
+                  font.pixelSize: Style.font.body
+                  font.bold: true
+                }
+              }
+
+              ListView {
+                id: resultList
+                width: parent.width
+                height: parent.height - root.rowHeight - Style.spacing.sm
+                clip: true
+                model: root.visibleRows
+                currentIndex: root.selectedIndex
+
+                delegate: Rectangle {
+                  required property var modelData
+                  required property int index
+                  width: resultList.width
+                  height: root.rowHeight
+                  color: index === root.selectedIndex ? root.selectedBackground : "transparent"
+
+                  // Selection marker, as in the TUI.
+                  Rectangle {
+                    width: Math.max(2, Style.space(2))
+                    height: parent.height
+                    color: root.accent
+                    visible: index === root.selectedIndex
+                  }
+
+                  Row {
+                    anchors.fill: parent
+                    anchors.leftMargin: Style.spacing.sm
+                    spacing: 0
+
+                    Text {
+                      width: keyCatcher.sectionWidth
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: modelData.section
+                      color: root.foreground
+                      opacity: 0.6
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.body
+                      font.bold: index === root.selectedIndex
+                      elide: Text.ElideRight
+                    }
+
+                    Text {
+                      width: keyCatcher.keysWidth
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: modelData.keys
+                      color: root.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.body
+                      font.bold: index === root.selectedIndex
+                      elide: Text.ElideRight
+                    }
+
+                    Text {
+                      width: parent.width - keyCatcher.sectionWidth - keyCatcher.keysWidth - Style.spacing.sm
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: modelData.action
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.body
+                      font.bold: index === root.selectedIndex
+                      elide: Text.ElideRight
+                    }
+                  }
                 }
               }
             }
-          }
-        }
 
-        // Empty state
-        Text {
-          anchors.centerIn: parent
-          visible: root.visibleRows.length === 0
-          text: root.tabs.length === 0 ? "loading keybindings…" : "no match"
-          color: root.foreground
-          opacity: 0.5
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.body
+            Text {
+              anchors.centerIn: parent
+              visible: root.visibleRows.length === 0
+              text: root.tabs.length === 0 ? "loading keybindings…" : "no match"
+              color: root.foreground
+              opacity: 0.5
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+            }
+          }
+
+          // The search line doubles as the hint bar, like the TUI's footer.
+          Text {
+            id: footer
+            width: parent.width
+            text: root.filterText
+                  ? "/ " + root.filterText
+                  : "←/→ switch tab · ↑/↓ navigate · type to search · @tab to jump · Esc close"
+            color: root.filterText ? root.accent : root.foreground
+            opacity: root.filterText ? 1.0 : 0.5
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            elide: Text.ElideRight
+          }
         }
       }
     }

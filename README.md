@@ -24,9 +24,8 @@ remember to update.
 | Tuicr | bundled |
 
 Bundled tables are hand-copied from each tool's documented defaults and live
-in `data/*.json`. They are the same files that
-[keybinds-tui](https://github.com/harbefas/keybinds-tui) compiles into its
-binary, so the terminal version and this overlay never disagree.
+in `data/*.json`, read by the plugin itself. Nothing outside Hyprland,
+Quickshell, and an optional `nvim` is involved.
 
 Reading Hyprland through `hyprctl` rather than parsing `~/.config/hypr/*.conf`
 means binds pulled in through any include show up too, along with the submap
@@ -68,15 +67,14 @@ omarchy restart shell
 Hyprland and Quickshell, both of which Omarchy already provides. `nvim` is
 optional: without it the Neovim tab says so and every other tab still works.
 
-The Neovim keymaps are dumped in the background on first open. If
-`keybinds-tui` has run recently its cache in `/tmp/kb-nvim-cache.json` is
-reused, skipping the dump; the plugin only ever reads that file and writes
-its own.
+The Neovim keymaps are dumped in the background on open. The previous dump is
+kept in `/tmp` and rendered immediately, so only the first open ever waits.
 
 ## Terminal version
 
 [keybinds-tui](https://github.com/harbefas/keybinds-tui) is the same idea as a
-ratatui TUI, for people not running Omarchy. Neither depends on the other.
+ratatui TUI, for people not running Omarchy. The two share no code and neither
+needs the other installed; the bundled tables started from the same research.
 
 ## Remove
 
