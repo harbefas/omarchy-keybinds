@@ -51,13 +51,10 @@ Item {
   property color background: Color.menu.background
   property color foreground: Color.menu.text
   property color border: Color.menu.border
-  // The theme's [menu] border is often near-black, which reads as a drop
-  // shadow around the card rather than a frame. Keep the theme's widths and
-  // paint it in the accent, as the terminal build does.
-  property var borderSpec: {
-    var spec = Border.surfaceSpec("menu", "border", root.accent, Math.max(1, Style.space(2)))
-    return { color: root.accent, widths: spec.widths, gradient: null }
-  }
+  // The terminal build opens as a Hyprland window, so its frame is the
+  // compositor's active-border — gradient and all. Borrow the same token so
+  // the overlay is framed identically instead of using the [menu] border.
+  property var borderSpec: Border.hyprlandActiveSpec(root.accent, Math.max(1, Style.space(2)))
   property color scrim: Color.menu.scrim
   property color selectedBackground: Color.menu.selectedBackground
   property color selectedText: Color.menu.selectedText
