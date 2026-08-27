@@ -51,49 +51,7 @@ Item {
   property color background: Color.menu.background
   property color foreground: Color.menu.text
   property color border: Color.menu.border
-  // The terminal build opens as a Hyprland window, so the compositor paints
-  // its frame with general:col.active_border — usually a gradient. Themes here
-  // do not all define [hyprland] active-border, and the shell's fallback
-  // collapses to a flat colour, so read the live value from Hyprland instead.
-  // The overlay holds exclusive keyboard focus for as long as it is open, so
-  // it is always the active window and never wants the inactive border.
-  property var borderSpec: Border.hyprlandActiveSpec(root.accent, Math.max(1, Style.space(2)))
-  property int borderWidth: Math.max(1, Style.space(2))
-
-  // "eea67c52 eed4a574 45deg" -> {colors: [...], angle: 45, enabled: true}
-  function parseHyprGradient(raw) {
-    var parts = String(raw || "").trim().split(/\s+/).filter(function (p) { return p.length > 0 })
-    if (parts.length === 0) return null
-
-    var colors = []
-    var angle = 0
-    for (var i = 0; i < parts.length; i++) {
-      var deg = parts[i].match(/^(-?[0-9.]+)deg$/)
-      if (deg) { angle = parseFloat(deg[1]); continue }
-      // Hyprland writes AARRGGBB, which is also Qt's "#AARRGGBB" order.
-      if (/^[0-9a-fA-F]{8}$/.test(parts[i])) colors.push("#" + parts[i])
-      else if (/^[0-9a-fA-F]{6}$/.test(parts[i])) colors.push("#" + parts[i])
-    }
-    if (colors.length === 0) return null
-    return { colors: colors, angle: angle, enabled: colors.length > 1 }
-  }
-
-  function applyHyprBorder(raw) {
-    var parsed = null
-    try { parsed = root.parseHyprGradient(JSON.parse(raw).gradient) } catch (e) { return }
-    if (!parsed) return
-    root.borderSpec = {
-      color: parsed.colors[0],
-      widths: root.borderSpec.widths,
-      gradient: parsed.enabled ? parsed : { colors: [], angle: 0, enabled: false }
-    }
-  }
-
-  Process {
-    id: hyprActiveBorder
-    command: ["hyprctl", "-j", "getoption", "general:col.active_border"]
-    stdout: StdioCollector { onStreamFinished: root.applyHyprBorder(text) }
-  }
+  property var borderSpec: Border.surfaceSpec("menu", "border", border, Math.max(1, Style.space(2)))
   property color scrim: Color.menu.scrim
   property color selectedBackground: Color.menu.selectedBackground
   property color selectedText: Color.menu.selectedText
@@ -128,7 +86,6 @@ Item {
     root.selectedIndex = 0
     root.activeApp = guessAppForFocus()
     root.refreshHyprland()
-    hyprActiveBorder.running = true
     root.loadNeovim()
     root.rebuildRows()
     Qt.callLater(function () { keyCatcher.forceActiveFocus() })

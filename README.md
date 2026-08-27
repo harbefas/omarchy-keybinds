@@ -35,11 +35,15 @@ each belongs to.
 
 | Key | Action |
 |---|---|
-| type | filter the active tab |
+| `h` / `l`, `←` / `→`, `Tab` | previous / next tab |
+| `j` / `k`, `↑` / `↓` | move selection |
+| `Ctrl+d` / `Ctrl+u` | half page down / up |
+| `gg` / `G` | top / bottom |
+| `/` | search the active tab |
+| `w` | which-key narrowing: type the chord to filter by it |
 | `@name` | jump to a tab by name or alias (`@vim scroll`) |
-| `Tab` / `Shift+Tab`, `←` / `→` | previous / next tab |
-| `↑` / `↓`, `Ctrl+P` / `Ctrl+N` | move selection |
-| `Esc` | clear the filter, then close |
+| `Esc` | leave search or which-key, then close |
+| `q` | close |
 
 Search matches multiple words in any order, as substrings or fuzzily, so
 "tab next", "next tab", and "nxt tb" all find "Next tab".
@@ -82,8 +86,8 @@ needs the other installed; the bundled tables started from the same research.
 omarchy plugin remove harbefas.keybinds
 ```
 
-The plugin writes no files outside its own directory, apart from the shared
-Neovim cache in `/tmp`.
+The plugin writes no files outside its own directory, apart from its Neovim
+dump in `/tmp`.
 
 ## License
 
