@@ -417,9 +417,11 @@ Item {
 
   // ----------------------------------------------------------------- neovim
 
-  // The dump costs seconds on a plugin-heavy config, so the last one is kept
-  // and rendered immediately on open while a fresh dump runs behind it.
-  readonly property string dumpPath: "/tmp/omarchy-keybinds-nvim-dump.json"
+  // The dump is read straight off the child's stdout. An earlier version wrote
+  // it to a fixed path in /tmp, which another local user could pre-create as a
+  // symlink so this user's Neovim overwrote a file of their choosing — and the
+  // dump itself, containing the user's mappings, would have been left readable
+  // on disk. There is no file now.
   readonly property string nvimDumpLua:
     'local out = {} ' +
     'for _, mode in ipairs({"n", "i", "v", "x"}) do ' +
@@ -427,10 +429,13 @@ Item {
     '    table.insert(out, {mode = mode, lhs = m.lhs, rhs = m.rhs or "", desc = m.desc}) ' +
     '  end ' +
     'end ' +
-    'local f = io.open(os.getenv("KB_NVIM_DUMP"), "w") ' +
-    'f:write(vim.json.encode(out)) ' +
-    'f:close() ' +
+    'io.stdout:write("\\30" .. vim.json.encode(out) .. "\\30") ' +
+    'io.stdout:flush() ' +
     'vim.cmd("qa!")'
+
+  // Refuse a dump larger than any real keymap set, rather than parsing whatever
+  // a wedged child decides to print.
+  readonly property int maxDumpBytes: 4 * 1024 * 1024
 
   property bool nvimLoaded: false
 
@@ -458,9 +463,23 @@ Item {
     return true
   }
 
+  // Headless Neovim prints its own noise, so the payload is fenced in RS
+  // (0x1e) markers and everything outside them is discarded.
+  function extractDump(raw) {
+    var text = String(raw || "")
+    if (text.length > root.maxDumpBytes) return ""
+    var first = text.indexOf("\u001e")
+    var last = text.lastIndexOf("\u001e")
+    if (first < 0 || last <= first) return ""
+    return text.slice(first + 1, last)
+  }
+
   function buildNeovimTab(raw) {
+    var payload = root.extractDump(raw)
+    if (!payload) return false
+
     var entries = []
-    try { entries = JSON.parse(raw) } catch (e) { return false }
+    try { entries = JSON.parse(payload) } catch (e) { return false }
     if (!entries.length) return false
 
     var byMode = {}
@@ -482,22 +501,14 @@ Item {
     }))
   }
 
-  // Renders the previous dump straight away, then refreshes it in the
-  // background so a config edit shows up on the next open.
+  // The tab is placeheld until the dump lands; the service outlives every
+  // surface, so this is paid once per shell session rather than per open.
   property bool nvimDumpedThisSession: false
 
   function loadNeovim() {
-    if (!root.nvimLoaded) previousDump.reload()
-    if (!root.nvimDumpedThisSession) {
-      root.nvimDumpedThisSession = true
-      nvimDump.running = true
-    }
-  }
-
-  FileView {
-    id: previousDump
-    path: root.dumpPath
-    onLoaded: root.buildNeovimTab(text())
+    if (root.nvimDumpedThisSession) return
+    root.nvimDumpedThisSession = true
+    nvimDump.running = true
   }
 
   // `timeout` guards against plugins that hang headless startup waiting on a
@@ -505,20 +516,13 @@ Item {
   Process {
     id: nvimDump
     command: ["timeout", "8", "nvim", "--headless", "-c", "lua " + root.nvimDumpLua]
-    environment: ({ "KB_NVIM_DUMP": root.dumpPath })
+    stdout: StdioCollector {
+      onStreamFinished: {
+        if (!root.buildNeovimTab(text) && !root.nvimLoaded)
+          root.upsertTab(root.placeholderNeovimTab("no keymaps found in the nvim dump"), 99)
+      }
+    }
     onExited: function (code, status) {
-      freshDump.reload()
-    }
-  }
-
-  FileView {
-    id: freshDump
-    path: root.dumpPath
-    onLoaded: {
-      if (!root.buildNeovimTab(text()) && !root.nvimLoaded)
-        root.upsertTab(root.placeholderNeovimTab("no keymaps found in the nvim dump"), 99)
-    }
-    onLoadFailed: {
       if (!root.nvimLoaded)
         root.upsertTab(root.placeholderNeovimTab("failed to run `nvim --headless` (binary in PATH?)"), 99)
     }

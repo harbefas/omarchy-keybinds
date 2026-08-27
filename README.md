@@ -107,8 +107,9 @@ omarchy restart shell
 Hyprland and Quickshell, both of which Omarchy already provides. `nvim` is
 optional: without it the Neovim tab says so and every other tab still works.
 
-The Neovim keymaps are dumped in the background on open. The previous dump is
-kept in `/tmp` and rendered immediately, so only the first open ever waits.
+The Neovim keymaps are dumped in the background on the first open of a shell
+session and read straight off the child process's stdout — nothing is written
+to disk.
 
 ## Terminal version
 
@@ -122,8 +123,7 @@ needs the other installed; the bundled tables started from the same research.
 omarchy plugin remove harbefas.keybinds
 ```
 
-The plugin writes no files outside its own directory, apart from its Neovim
-dump in `/tmp`.
+The plugin writes no files at all outside its own directory.
 
 ## License
 
