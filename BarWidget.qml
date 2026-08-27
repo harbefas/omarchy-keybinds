@@ -29,6 +29,14 @@ BarWidget {
   property bool pendingG: false
   property int selectedIndex: 0
 
+  // Counted per shell session, so the suggestion fades on its own for someone
+  // who is happy clicking the icon and never wants a keybind.
+  property int popupOpens: 0
+  readonly property int tipOpenLimit: 3
+  readonly property bool showBindTip: root.service
+    && !root.service.keybindConfigured
+    && root.popupOpens <= root.tipOpenLimit
+
   readonly property int activeTab: {
     if (!root.service) return 0
     var at = root.service.tabIndexByApp(root.activeApp)
@@ -55,6 +63,7 @@ BarWidget {
     root.pendingG = false
     root.selectedIndex = 0
     root.popupOpen = true
+    root.popupOpens += 1
     Qt.callLater(function () { keyCatcher.forceActiveFocus() })
   }
 
@@ -309,6 +318,34 @@ BarWidget {
           color: root.secondary
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
+        }
+
+        // A suggestion, not a to-do: a keybind is optional, the bar icon
+        // works on its own. Shown for the first few opens of a shell session
+        // and dropped for good once any binding references the plugin.
+        Rectangle {
+          width: parent.width
+          visible: root.showBindTip
+          height: visible ? tipLabel.implicitHeight + Style.spacing.sm * 2 : 0
+          radius: Style.cornerRadius
+          color: Util.alpha(root.accent, 0.10)
+
+          Text {
+            id: tipLabel
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Style.spacing.sm
+            anchors.rightMargin: Style.spacing.sm
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Prefer a shortcut? Bind any key to "
+                  + "omarchy-shell harbefas.keybinds.widget toggle — README has an example."
+            textFormat: Text.PlainText
+            color: root.foreground
+            opacity: 0.8
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.WordWrap
+          }
         }
 
         // Hints on the left, a clickable way out on the right: the popup is

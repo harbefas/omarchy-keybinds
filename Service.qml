@@ -64,6 +64,34 @@ Item {
     })
   }
 
+  // ------------------------------------------------------------- onboarding
+
+  // Nothing writes to the user's Hyprland config, so a fresh install has no
+  // shortcut. Both surfaces offer one until a binding referencing this plugin
+  // shows up, at which point the hint retires itself.
+  readonly property string suggestedKey: "SUPER + SHIFT + H"
+  readonly property string suggestedBind:
+    'o.bind("' + root.suggestedKey + '", "Keybinds", "omarchy-shell harbefas.keybinds.widget toggle")'
+
+  property bool keybindConfigured: false
+
+  function noteBindings(text) {
+    if (String(text || "").indexOf("harbefas.keybinds") >= 0) root.keybindConfigured = true
+  }
+
+  FileView {
+    path: Quickshell.env("HOME") + "/.config/hypr/bindings.lua"
+    watchChanges: true
+    onLoaded: root.noteBindings(text())
+  }
+
+  // Pre-Quattro setups still keep their bindings here.
+  FileView {
+    path: Quickshell.env("HOME") + "/.config/hypr/bindings.conf"
+    watchChanges: true
+    onLoaded: root.noteBindings(text())
+  }
+
   // ------------------------------------------------------------------- ipc
 
   // The bar widget registers itself here so the popup can be driven from a
