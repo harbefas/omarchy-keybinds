@@ -89,7 +89,16 @@ Item {
     root.pendingG = false
     root.selectedIndex = 0
     if (root.service) {
-      root.activeApp = root.service.guessAppForFocus()
+      // The bar popup hands over the tab it was showing; otherwise fall back
+      // to guessing from whatever window had focus.
+      var handoff = ""
+      try {
+        var payload = JSON.parse(payloadJson || "{}")
+        if (payload && typeof payload.app === "string") handoff = payload.app
+      } catch (e) { handoff = "" }
+
+      root.activeApp = handoff && root.service.tabIndexByApp(handoff) >= 0
+        ? handoff : root.service.guessAppForFocus()
       root.service.refresh()
     }
     root.rebuildRows()
