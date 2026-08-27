@@ -131,4 +131,10 @@ MIT
 
 ## Preview
 
+The bar popup, the everyday surface:
+
+![Keybinds popup](preview-popup.png)
+
+The full overlay, one press away:
+
 ![Keybinds overlay](preview.png)
