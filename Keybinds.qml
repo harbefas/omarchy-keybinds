@@ -681,7 +681,7 @@ Item {
                   opacity: 0.5
                   horizontalAlignment: Text.AlignRight
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.small
+                  font.pixelSize: Style.font.bodySmall
                   elide: Text.ElideRight
                 }
               }
