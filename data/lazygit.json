@@ -1,0 +1,181 @@
+{
+  "app": "Lazygit",
+  "windowClass": [
+    "lazygit"
+  ],
+  "aliases": [
+    "git"
+  ],
+  "source": "static",
+  "sections": [
+    {
+      "name": "Global",
+      "binds": [
+        {
+          "keys": "1..5",
+          "action": "Switch panel (Status/Files/Branches/Commits/Stash)"
+        },
+        {
+          "keys": "Tab",
+          "action": "Next panel"
+        },
+        {
+          "keys": "[ / ]",
+          "action": "Previous / next tab within panel"
+        },
+        {
+          "keys": "+ / -",
+          "action": "Increase / decrease panel"
+        },
+        {
+          "keys": "P",
+          "action": "Push"
+        },
+        {
+          "keys": "p",
+          "action": "Pull"
+        },
+        {
+          "keys": "x",
+          "action": "Panel options menu"
+        },
+        {
+          "keys": "?",
+          "action": "Help (full shortcut list)"
+        },
+        {
+          "keys": "q",
+          "action": "Quit"
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "binds": [
+        {
+          "keys": "space",
+          "action": "Stage / unstage file"
+        },
+        {
+          "keys": "a",
+          "action": "Stage all"
+        },
+        {
+          "keys": "c",
+          "action": "Commit"
+        },
+        {
+          "keys": "C",
+          "action": "Commit (external editor)"
+        },
+        {
+          "keys": "d",
+          "action": "Discard changes"
+        },
+        {
+          "keys": "e",
+          "action": "Edit file"
+        },
+        {
+          "keys": "i",
+          "action": "Ignore file"
+        },
+        {
+          "keys": "D",
+          "action": "Reset menu"
+        },
+        {
+          "keys": "Enter",
+          "action": "View staged diff by hunk/line"
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "binds": [
+        {
+          "keys": "space",
+          "action": "Checkout branch"
+        },
+        {
+          "keys": "n",
+          "action": "New branch"
+        },
+        {
+          "keys": "d",
+          "action": "Delete branch"
+        },
+        {
+          "keys": "M",
+          "action": "Merge selected branch into current"
+        },
+        {
+          "keys": "r",
+          "action": "Rebase current branch onto selected"
+        },
+        {
+          "keys": "R",
+          "action": "Rename branch"
+        }
+      ]
+    },
+    {
+      "name": "Commits",
+      "binds": [
+        {
+          "keys": "space",
+          "action": "Checkout commit"
+        },
+        {
+          "keys": "s",
+          "action": "Squash down"
+        },
+        {
+          "keys": "f",
+          "action": "Fixup commit"
+        },
+        {
+          "keys": "r",
+          "action": "Reword"
+        },
+        {
+          "keys": "d",
+          "action": "Drop commit"
+        },
+        {
+          "keys": "p",
+          "action": "Pick (during interactive rebase)"
+        },
+        {
+          "keys": "g",
+          "action": "Reset current branch to this commit"
+        },
+        {
+          "keys": "C",
+          "action": "Copy commit (cherry-pick)"
+        },
+        {
+          "keys": "V",
+          "action": "Paste copied commits"
+        }
+      ]
+    },
+    {
+      "name": "Stash",
+      "binds": [
+        {
+          "keys": "space",
+          "action": "Apply stash"
+        },
+        {
+          "keys": "g",
+          "action": "Pop stash"
+        },
+        {
+          "keys": "d",
+          "action": "Drop stash"
+        }
+      ]
+    }
+  ]
+}

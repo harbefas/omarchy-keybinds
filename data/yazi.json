@@ -1,0 +1,166 @@
+{
+  "app": "Yazi",
+  "windowClass": [
+    "yazi"
+  ],
+  "aliases": [
+    "files",
+    "explorer"
+  ],
+  "source": "static",
+  "sections": [
+    {
+      "name": "Navigation",
+      "binds": [
+        {
+          "keys": "j / k",
+          "action": "Down / up"
+        },
+        {
+          "keys": "h / l",
+          "action": "Leave / enter directory"
+        },
+        {
+          "keys": "g g / G",
+          "action": "Top / bottom of list"
+        },
+        {
+          "keys": "Ctrl+u / Ctrl+d",
+          "action": "Half page up / down"
+        },
+        {
+          "keys": "Tab",
+          "action": "Switch between panels"
+        },
+        {
+          "keys": "Enter",
+          "action": "Open file / enter directory"
+        }
+      ]
+    },
+    {
+      "name": "Selection",
+      "binds": [
+        {
+          "keys": "space",
+          "action": "Select/deselect item"
+        },
+        {
+          "keys": "v",
+          "action": "Visual mode (select)"
+        },
+        {
+          "keys": "V",
+          "action": "Visual mode (deselect)"
+        },
+        {
+          "keys": "Ctrl+a",
+          "action": "Select all"
+        },
+        {
+          "keys": "Ctrl+r",
+          "action": "Invert selection"
+        },
+        {
+          "keys": "Esc",
+          "action": "Cancel selection / visual mode"
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "binds": [
+        {
+          "keys": "y",
+          "action": "Copy (yank)"
+        },
+        {
+          "keys": "x",
+          "action": "Cut"
+        },
+        {
+          "keys": "p",
+          "action": "Paste"
+        },
+        {
+          "keys": "P",
+          "action": "Paste without overwrite"
+        },
+        {
+          "keys": "d",
+          "action": "Move to trash"
+        },
+        {
+          "keys": "D",
+          "action": "Delete permanently"
+        },
+        {
+          "keys": "a",
+          "action": "Create file/folder"
+        },
+        {
+          "keys": "r",
+          "action": "Rename"
+        },
+        {
+          "keys": ":",
+          "action": "Create (shell command)"
+        }
+      ]
+    },
+    {
+      "name": "Search and quick navigation",
+      "binds": [
+        {
+          "keys": "/",
+          "action": "Search (fzf-like filter)"
+        },
+        {
+          "keys": "f",
+          "action": "Find (incremental search)"
+        },
+        {
+          "keys": "z",
+          "action": "Zoxide jump"
+        },
+        {
+          "keys": "Z",
+          "action": "Fzf jump"
+        },
+        {
+          "keys": "`",
+          "action": "Go to directory (goto)"
+        },
+        {
+          "keys": "[ / ]",
+          "action": "Jump to previous / next dir in history"
+        }
+      ]
+    },
+    {
+      "name": "Misc",
+      "binds": [
+        {
+          "keys": "~",
+          "action": "Open help (full shortcut list)"
+        },
+        {
+          "keys": "s",
+          "action": "Shell (command in current directory)"
+        },
+        {
+          "keys": ".",
+          "action": "Toggle show hidden"
+        },
+        {
+          "keys": "T",
+          "action": "Toggle tab preview"
+        },
+        {
+          "keys": "q",
+          "action": "Quit"
+        }
+      ]
+    }
+  ]
+}

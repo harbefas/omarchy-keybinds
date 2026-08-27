@@ -1,0 +1,143 @@
+{
+  "app": "Tridactyl",
+  "windowClass": [
+    "librewolf",
+    "firefox"
+  ],
+  "aliases": [
+    "vim",
+    "browser"
+  ],
+  "source": "static",
+  "sections": [
+    {
+      "name": "Navigation",
+      "binds": [
+        {
+          "keys": "j / k",
+          "action": "Scroll down / up"
+        },
+        {
+          "keys": "h / l",
+          "action": "Scroll left / right"
+        },
+        {
+          "keys": "gg / G",
+          "action": "Go to top / bottom"
+        },
+        {
+          "keys": "H / L",
+          "action": "Back / Forward"
+        },
+        {
+          "keys": "r",
+          "action": "Reload"
+        },
+        {
+          "keys": "R",
+          "action": "Hard reload"
+        }
+      ]
+    },
+    {
+      "name": "Links",
+      "binds": [
+        {
+          "keys": "f",
+          "action": "Hint mode — open in same tab"
+        },
+        {
+          "keys": "F",
+          "action": "Hint mode — open in new tab"
+        },
+        {
+          "keys": "gi",
+          "action": "Focus first input on the page"
+        }
+      ]
+    },
+    {
+      "name": "Tabs",
+      "binds": [
+        {
+          "keys": "t",
+          "action": "New tab with URL"
+        },
+        {
+          "keys": "d",
+          "action": "Close tab"
+        },
+        {
+          "keys": "u",
+          "action": "Reopen closed tab"
+        },
+        {
+          "keys": "J / K",
+          "action": "Previous / next tab"
+        },
+        {
+          "keys": "b",
+          "action": "Buffer picker (search by tab)"
+        },
+        {
+          "keys": "gt / gT",
+          "action": "Next / previous tab"
+        }
+      ]
+    },
+    {
+      "name": "URL / Search",
+      "binds": [
+        {
+          "keys": "o",
+          "action": "Open URL in same tab"
+        },
+        {
+          "keys": "O",
+          "action": "Open URL in new tab"
+        },
+        {
+          "keys": "s",
+          "action": "Search in same tab"
+        },
+        {
+          "keys": "S",
+          "action": "Search in new tab"
+        },
+        {
+          "keys": "p / P",
+          "action": "Open clipboard as URL"
+        }
+      ]
+    },
+    {
+      "name": "Misc",
+      "binds": [
+        {
+          "keys": "yy",
+          "action": "Copy page URL"
+        },
+        {
+          "keys": "yt",
+          "action": "Duplicate tab"
+        },
+        {
+          "keys": "zi / zo / zz",
+          "action": "Zoom in / out / reset"
+        },
+        {
+          "keys": ":help",
+          "action": "Full help"
+        },
+        {
+          "keys": ":tutor",
+          "action": "Interactive tutorial"
+        },
+        {
+          "keys": "Escape",
+          "action": "Back to normal mode"
+        }
+      ]
+    }
+  ]
+}

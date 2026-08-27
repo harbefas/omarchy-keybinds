@@ -1,0 +1,121 @@
+{
+  "app": "Spotify",
+  "windowClass": [
+    "spotify_player",
+    "spotify-player"
+  ],
+  "aliases": [
+    "music"
+  ],
+  "source": "static",
+  "sections": [
+    {
+      "name": "Playback",
+      "binds": [
+        {
+          "keys": "space",
+          "action": "Play / pause"
+        },
+        {
+          "keys": "n / p",
+          "action": "Next / previous track"
+        },
+        {
+          "keys": "< / >",
+          "action": "Seek back / forward 5s"
+        },
+        {
+          "keys": "- / +",
+          "action": "Volume down / up"
+        },
+        {
+          "keys": ". ",
+          "action": "Toggle repeat"
+        },
+        {
+          "keys": ",",
+          "action": "Toggle shuffle"
+        },
+        {
+          "keys": "z",
+          "action": "Toggle like"
+        }
+      ]
+    },
+    {
+      "name": "Navigation",
+      "binds": [
+        {
+          "keys": "j / k",
+          "action": "Down / up"
+        },
+        {
+          "keys": "h / l",
+          "action": "Left / right"
+        },
+        {
+          "keys": "g / G",
+          "action": "Top / bottom"
+        },
+        {
+          "keys": "Tab / Shift+Tab",
+          "action": "Next / previous page"
+        },
+        {
+          "keys": "Enter",
+          "action": "Select"
+        },
+        {
+          "keys": "Escape",
+          "action": "Back / close popup"
+        }
+      ]
+    },
+    {
+      "name": "Search and context",
+      "binds": [
+        {
+          "keys": "/",
+          "action": "Search"
+        },
+        {
+          "keys": "s",
+          "action": "Open search page"
+        },
+        {
+          "keys": "c",
+          "action": "Open current context (playlist/album/artist)"
+        },
+        {
+          "keys": "C",
+          "action": "Context menu (browse)"
+        },
+        {
+          "keys": "q",
+          "action": "Add to queue"
+        },
+        {
+          "keys": "Q",
+          "action": "Open queue"
+        }
+      ]
+    },
+    {
+      "name": "Devices and misc",
+      "binds": [
+        {
+          "keys": "D",
+          "action": "Select device"
+        },
+        {
+          "keys": "?",
+          "action": "Help popup (full shortcut list)"
+        },
+        {
+          "keys": "Ctrl+q",
+          "action": "Quit"
+        }
+      ]
+    }
+  ]
+}

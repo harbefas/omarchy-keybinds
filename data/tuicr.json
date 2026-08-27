@@ -1,0 +1,97 @@
+{
+  "app": "Tuicr",
+  "windowClass": [
+    "tuicr"
+  ],
+  "aliases": [
+    "review",
+    "pr",
+    "code review"
+  ],
+  "source": "static",
+  "sections": [
+    {
+      "name": "Navigation",
+      "binds": [
+        {
+          "keys": "j / k",
+          "action": "Line down / up"
+        },
+        {
+          "keys": "h / l",
+          "action": "Collapse / expand hunk or file"
+        },
+        {
+          "keys": "g g / G",
+          "action": "Top / bottom of diff"
+        },
+        {
+          "keys": "Ctrl+d / Ctrl+u",
+          "action": "Half page down / up"
+        },
+        {
+          "keys": "Tab / Shift+Tab",
+          "action": "Next / previous file"
+        },
+        {
+          "keys": "]c / [c",
+          "action": "Next / previous hunk"
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "binds": [
+        {
+          "keys": "c",
+          "action": "Comment on current line"
+        },
+        {
+          "keys": "v",
+          "action": "Visual mode — select line range"
+        },
+        {
+          "keys": "C",
+          "action": "Comment on whole file"
+        },
+        {
+          "keys": "R",
+          "action": "General review comment"
+        },
+        {
+          "keys": "e",
+          "action": "Edit existing comment"
+        },
+        {
+          "keys": "d",
+          "action": "Delete comment"
+        }
+      ]
+    },
+    {
+      "name": "Review and submission",
+      "binds": [
+        {
+          "keys": "s",
+          "action": "Submit review (push to forge)"
+        },
+        {
+          "keys": "y",
+          "action": "Copy review as markdown"
+        },
+        {
+          "keys": "Enter",
+          "action": "Approve / mark hunk as reviewed"
+        },
+        {
+          "keys": "?",
+          "action": "Help (full shortcut list)"
+        },
+        {
+          "keys": "q",
+          "action": "Quit"
+        }
+      ]
+    }
+  ]
+}

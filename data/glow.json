@@ -1,0 +1,71 @@
+{
+  "app": "Glow",
+  "windowClass": [
+    "glow"
+  ],
+  "aliases": [
+    "markdown",
+    "md"
+  ],
+  "source": "static",
+  "sections": [
+    {
+      "name": "Navigation (file finder)",
+      "binds": [
+        {
+          "keys": "j / k",
+          "action": "Down / up"
+        },
+        {
+          "keys": "g g / G",
+          "action": "Top / bottom"
+        },
+        {
+          "keys": "/",
+          "action": "Filter files"
+        },
+        {
+          "keys": "Enter",
+          "action": "Open file"
+        },
+        {
+          "keys": "q",
+          "action": "Quit"
+        }
+      ]
+    },
+    {
+      "name": "Reading (pager)",
+      "binds": [
+        {
+          "keys": "j / k",
+          "action": "Scroll line down / up"
+        },
+        {
+          "keys": "d / u",
+          "action": "Half page down / up"
+        },
+        {
+          "keys": "g / G",
+          "action": "Top / bottom of document"
+        },
+        {
+          "keys": "/",
+          "action": "Search in document"
+        },
+        {
+          "keys": "n / N",
+          "action": "Next / previous match"
+        },
+        {
+          "keys": "esc / q",
+          "action": "Back to file finder"
+        },
+        {
+          "keys": "?",
+          "action": "Help"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "harbefas.keybinds",
+  "name": "Keybinds",
+  "version": "1.0.0",
+  "author": "harbefas",
+  "license": "MIT",
+  "description": "Searchable keybinding reference for Hyprland and the terminal tools you use",
+  "kinds": ["overlay"],
+  "entryPoints": { "overlay": "Keybinds.qml" }
+}

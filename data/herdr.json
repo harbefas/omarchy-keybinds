@@ -1,0 +1,123 @@
+{
+  "app": "Herdr",
+  "windowClass": [],
+  "aliases": [
+    "tmux",
+    "multiplexer"
+  ],
+  "source": "static+overrides",
+  "sections": [
+    {
+      "name": "Workspaces",
+      "binds": [
+        {
+          "keys": "Prefix + Down",
+          "action": "Next workspace"
+        },
+        {
+          "keys": "Prefix + Up",
+          "action": "Previous workspace"
+        },
+        {
+          "keys": "Prefix + W",
+          "action": "Workspace picker"
+        },
+        {
+          "keys": "Prefix + Shift + N",
+          "action": "New workspace"
+        },
+        {
+          "keys": "Prefix + Shift + W",
+          "action": "Rename workspace"
+        },
+        {
+          "keys": "Prefix + Shift + D",
+          "action": "Close workspace"
+        }
+      ]
+    },
+    {
+      "name": "Tabs",
+      "binds": [
+        {
+          "keys": "Prefix + Right",
+          "action": "Next tab"
+        },
+        {
+          "keys": "Prefix + Left",
+          "action": "Previous tab"
+        },
+        {
+          "keys": "Prefix + C",
+          "action": "New tab"
+        },
+        {
+          "keys": "Prefix + Shift + T",
+          "action": "Rename tab"
+        },
+        {
+          "keys": "Prefix + Shift + X",
+          "action": "Close tab"
+        },
+        {
+          "keys": "Prefix + 1..9",
+          "action": "Go to tab N"
+        }
+      ]
+    },
+    {
+      "name": "Panes",
+      "binds": [
+        {
+          "keys": "Prefix + V",
+          "action": "Vertical split"
+        },
+        {
+          "keys": "Prefix + -",
+          "action": "Horizontal split"
+        },
+        {
+          "keys": "Prefix + X",
+          "action": "Close pane"
+        },
+        {
+          "keys": "Prefix + Z",
+          "action": "Zoom (fullscreen) pane"
+        },
+        {
+          "keys": "Prefix + H/J/K/L",
+          "action": "Focus pane left/down/up/right"
+        },
+        {
+          "keys": "Prefix + Tab",
+          "action": "Cycle panes"
+        },
+        {
+          "keys": "Prefix + R",
+          "action": "Resize mode"
+        }
+      ]
+    },
+    {
+      "name": "Misc",
+      "binds": [
+        {
+          "keys": "Prefix + ?",
+          "action": "Help"
+        },
+        {
+          "keys": "Prefix + B",
+          "action": "Toggle sidebar"
+        },
+        {
+          "keys": "Prefix + G",
+          "action": "Goto (search)"
+        },
+        {
+          "keys": "Prefix + E",
+          "action": "Edit scrollback"
+        }
+      ]
+    }
+  ]
+}
