@@ -46,6 +46,64 @@ Item {
     root.loadNeovim()
   }
 
+  // Every tab: { app, aliases: [], windowClass: [], binaries: [], sections: [] }.
+  // Hyprland and Neovim are placeheld at fixed indices so their async loads
+  // can drop straight into place without reshuffling the strip.
+  property var allTabs: []
+
+  // A tab declaring `binaries` is only shown when one of them is on PATH, so
+  // installing the plugin does not hand you a reference to somebody else's
+  // tools. Tabs with no `binaries` (Hyprland, Neovim) always show.
+  property var installedBinaries: null
+  readonly property var tabs: {
+    if (root.installedBinaries === null) return root.allTabs
+    return root.allTabs.filter(function (tab) {
+      var needed = tab.binaries || []
+      if (needed.length === 0) return true
+      return needed.some(function (b) { return root.installedBinaries[b] === true })
+    })
+  }
+
+  // ------------------------------------------------------------------- ipc
+
+  // The bar widget registers itself here so the popup can be driven from a
+  // keybind or a script, the same way the overlay is summoned.
+  property var widget: null
+
+  function openWidget() {
+    if (!root.widget) return false
+    root.widget.openPopup()
+    return true
+  }
+
+  function closeWidget() {
+    if (!root.widget) return false
+    root.widget.closePopup()
+    return true
+  }
+
+  function isWidgetOpen() {
+    return !!(root.widget && root.widget.popupOpen)
+  }
+
+  IpcHandler {
+    target: "harbefas.keybinds.widget"
+
+    function open(): string {
+      return root.openWidget() ? "opened" : "unavailable"
+    }
+
+    function close(): string {
+      return root.closeWidget() ? "closed" : "unavailable"
+    }
+
+    function toggle(): string {
+      return root.isWidgetOpen()
+        ? (root.closeWidget() ? "closed" : "unavailable")
+        : (root.openWidget() ? "opened" : "unavailable")
+    }
+  }
+
   // --------------------------------------------------------------- untrusted
 
   // Binds reach us from the compositor, from a headless Neovim dump written by
@@ -108,8 +166,6 @@ Item {
 
     next.sort(function (a, b) { return a.order - b.order })
     root.allTabs = next
-    if (!root.activeApp && root.tabs.length > 0) root.activeApp = root.tabs[0].app
-    root.rebuildRows()
   }
 
   // The overlay takes keyboard focus as a layer surface, not a toplevel, so
@@ -174,7 +230,6 @@ Item {
       found[line.split("/").pop()] = true
     }
     root.installedBinaries = found
-    root.rebuildRows()
   }
 
   Process {
@@ -443,6 +498,10 @@ Item {
 
   property int focusedPid: 0
 
+  // Published for the surfaces to watch: the process-tree walk finishes after
+  // they have already opened on a best guess.
+  property string detectedApp: ""
+
   function setFocusedPid(raw) {
     try { root.focusedPid = JSON.parse(raw).pid || 0 } catch (e) { root.focusedPid = 0 }
     if (root.focusedPid) terminalProbe.running = true
@@ -471,7 +530,7 @@ Item {
       var pid = queue.pop()
       var app = root.terminalApps[names[pid]]
       if (app) {
-        if (root.tabIndexByApp(app) >= 0) { root.activeApp = app; root.rebuildRows() }
+        if (root.tabIndexByApp(app) >= 0) root.detectedApp = app
         return
       }
       if (children[pid]) queue = queue.concat(children[pid])

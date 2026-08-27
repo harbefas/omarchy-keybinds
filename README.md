@@ -1,8 +1,15 @@
 # Omarchy Keybinds
 
-Native Omarchy overlay for looking up keybindings across the tools you
-actually use. One tab per app, opening on the tab matching whatever window
-was focused when you summoned it, with free-text search across all of them.
+Native Omarchy keybinding reference for the tools you actually use. One tab per
+app, opening on the tab matching whatever window was focused, with free-text
+search across all of them.
+
+Two surfaces, sharing one service so the binds are read once:
+
+- a **bar widget** — click the icon for a compact keys-and-actions popup you
+  can still tab through and search
+- a **full overlay** — adds the sections column and vim-style navigation,
+  reached with `Enter` or right-click from the popup, or from a keybind
 
 A hardcoded list of keybindings is a second copy of a fact the config already
 knows, and second copies drift. The tabs that can be read live are read live,
@@ -58,11 +65,23 @@ Search matches multiple words in any order, as substrings or fuzzily, so
 omarchy plugin add https://github.com/harbefas/omarchy-keybinds --enable
 ```
 
-Bind it to a key. On Omarchy Quattro the bindings live in
+Add the widget to the bar:
+
+```bash
+omarchy bar move harbefas.keybinds --section right
+```
+
+Bind the full overlay to a key. On Omarchy Quattro the bindings live in
 `~/.config/hypr/bindings.lua`:
 
 ```lua
 o.bind("SUPER + SHIFT + H", "Keybindings", "omarchy-shell shell summon harbefas.keybinds")
+```
+
+The popup has its own IPC target, if you would rather bind that:
+
+```lua
+o.bind("SUPER + K", "Keybinds popup", "omarchy-shell harbefas.keybinds.widget toggle")
 ```
 
 On older setups still using `~/.config/hypr/bindings.conf`:

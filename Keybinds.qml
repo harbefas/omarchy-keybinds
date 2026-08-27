@@ -46,23 +46,6 @@ Item {
   }
   property int selectedIndex: 0
 
-  // Every tab: { app, aliases: [], windowClass: [], binaries: [], sections: [] }.
-  // Hyprland and Neovim are placeheld at fixed indices so their async loads
-  // can drop straight into place without reshuffling the strip.
-  property var allTabs: []
-
-  // A tab declaring `binaries` is only shown when one of them is on PATH, so
-  // installing the plugin does not hand you a reference to somebody else's
-  // tools. Tabs with no `binaries` (Hyprland, Neovim) always show.
-  property var installedBinaries: null
-  readonly property var tabs: {
-    if (root.installedBinaries === null) return root.allTabs
-    return root.allTabs.filter(function (tab) {
-      var needed = tab.binaries || []
-      if (needed.length === 0) return true
-      return needed.some(function (b) { return root.installedBinaries[b] === true })
-    })
-  }
   property var visibleRows: []
 
   // Shares the [menu] surface tokens, so a theme that styles the Omarchy
@@ -124,6 +107,18 @@ Item {
   function toggle() {
     if (root.opened) root.dismiss()
     else root.open("{}")
+  }
+
+  // The focus probe answers asynchronously; adopt its verdict when it lands.
+  Connections {
+    target: root.service
+    ignoreUnknownSignals: true
+    function onDetectedAppChanged() {
+      if (root.service && root.service.detectedApp) {
+        root.activeApp = root.service.detectedApp
+        root.rebuildRows()
+      }
+    }
   }
 
   // ------------------------------------------------------------------- rows

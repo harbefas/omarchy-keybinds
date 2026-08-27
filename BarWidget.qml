@@ -118,6 +118,20 @@ BarWidget {
     event.accepted = false
   }
 
+  // Register with the service so the popup can be opened over IPC too.
+  Component.onCompleted: if (root.service) root.service.widget = root
+  onServiceChanged: if (root.service) root.service.widget = root
+
+  // The focus probe answers asynchronously; adopt its verdict when it lands.
+  Connections {
+    target: root.service
+    ignoreUnknownSignals: true
+    function onDetectedAppChanged() {
+      if (root.popupOpen && root.service && root.service.detectedApp)
+        root.activeApp = root.service.detectedApp
+    }
+  }
+
   BarIconButton {
     id: button
     anchors.fill: parent
@@ -145,40 +159,44 @@ BarWidget {
       anchors.fill: parent
       spacing: Style.space(8)
 
-      // Tab strip, wrapping rather than eliding: the popup is narrower than
-      // the overlay and the app list is long.
-      Flow {
+      // One scrolling line rather than a wrapping block: the popup is narrow
+      // and a second row of tabs costs more space than the binds it hides.
+      ListView {
+        id: tabStrip
         width: parent.width
-        spacing: Style.spacing.sm
+        height: Style.space(22)
+        orientation: ListView.Horizontal
+        clip: true
+        spacing: Style.spacing.xs
+        model: root.tabs
+        currentIndex: root.activeTab
+        // Keep the selected tab in view when it is reached with Tab.
+        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
 
-        Repeater {
-          model: root.tabs
+        delegate: Rectangle {
+          required property var modelData
+          required property int index
+          radius: Style.cornerRadius
+          height: tabStrip.height
+          width: tabLabel.implicitWidth + Style.spacing.controlPaddingX
+          color: index === root.activeTab ? Color.menu.selectedBackground : "transparent"
 
-          Rectangle {
-            required property var modelData
-            required property int index
-            radius: Style.cornerRadius
-            color: index === root.activeTab ? Color.menu.selectedBackground : "transparent"
-            implicitWidth: tabLabel.implicitWidth + Style.spacing.controlPaddingX
-            implicitHeight: tabLabel.implicitHeight + Style.spacing.xs * 2
+          Text {
+            id: tabLabel
+            anchors.centerIn: parent
+            text: modelData.app
+            textFormat: Text.PlainText
+            color: index === root.activeTab ? root.accent : root.secondary
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: index === root.activeTab
+          }
 
-            Text {
-              id: tabLabel
-              anchors.centerIn: parent
-              text: modelData.app
-              textFormat: Text.PlainText
-              color: index === root.activeTab ? root.accent : root.secondary
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              font.bold: index === root.activeTab
-            }
-
-            MouseArea {
-              anchors.fill: parent
-              onClicked: {
-                root.activeApp = modelData.app
-                root.selectedIndex = 0
-              }
+          MouseArea {
+            anchors.fill: parent
+            onClicked: {
+              root.activeApp = modelData.app
+              root.selectedIndex = 0
             }
           }
         }
