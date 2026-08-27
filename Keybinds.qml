@@ -40,10 +40,23 @@ Item {
   }
   property int selectedIndex: 0
 
-  // Every tab: { app, aliases: [], windowClass: [], sections: [{name, binds}] }.
+  // Every tab: { app, aliases: [], windowClass: [], binaries: [], sections: [] }.
   // Hyprland and Neovim are placeheld at fixed indices so their async loads
   // can drop straight into place without reshuffling the strip.
-  property var tabs: []
+  property var allTabs: []
+
+  // A tab declaring `binaries` is only shown when one of them is on PATH, so
+  // installing the plugin does not hand you a reference to somebody else's
+  // tools. Tabs with no `binaries` (Hyprland, Neovim) always show.
+  property var installedBinaries: null
+  readonly property var tabs: {
+    if (root.installedBinaries === null) return root.allTabs
+    return root.allTabs.filter(function (tab) {
+      var needed = tab.binaries || []
+      if (needed.length === 0) return true
+      return needed.some(function (b) { return root.installedBinaries[b] === true })
+    })
+  }
   property var visibleRows: []
 
   // Shares the [menu] surface tokens, so a theme that styles the Omarchy
@@ -117,7 +130,7 @@ Item {
   // Replaces a tab in place when its async source resolves, or appends it
   // keeping `order` (lower first) so the strip does not jump around.
   function upsertTab(tab, order) {
-    var next = root.tabs.slice()
+    var next = root.allTabs.slice()
     var at = -1
     for (var i = 0; i < next.length; i++)
       if (next[i].app === tab.app) { at = i; break }
@@ -127,8 +140,8 @@ Item {
     else next.push(tab)
 
     next.sort(function (a, b) { return a.order - b.order })
-    root.tabs = next
-    if (!root.activeApp && next.length > 0) root.activeApp = next[0].app
+    root.allTabs = next
+    if (!root.activeApp && root.tabs.length > 0) root.activeApp = root.tabs[0].app
     root.rebuildRows()
   }
 
@@ -272,6 +285,29 @@ Item {
     var parsed = null
     try { parsed = JSON.parse(raw) } catch (e) { return }
     if (parsed && parsed.app) root.upsertTab(parsed, order)
+  }
+
+  readonly property var candidateBinaries: [
+    "herdr", "spotify_player", "lazygit", "yazi", "glow", "tuicr",
+    "librewolf", "firefox", "zen-browser", "floorp"
+  ]
+
+  function recordInstalled(paths) {
+    var found = {}
+    var lines = String(paths || "").split("\n")
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim()
+      if (!line) continue
+      found[line.split("/").pop()] = true
+    }
+    root.installedBinaries = found
+    root.rebuildRows()
+  }
+
+  Process {
+    running: true
+    command: ["which"].concat(root.candidateBinaries)
+    stdout: StdioCollector { onStreamFinished: root.recordInstalled(text) }
   }
 
   Instantiator {

@@ -139,5 +139,11 @@
         }
       ]
     }
+  ],
+  "binaries": [
+    "librewolf",
+    "firefox",
+    "zen-browser",
+    "floorp"
   ]
 }
