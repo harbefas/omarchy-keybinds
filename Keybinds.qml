@@ -51,8 +51,10 @@ Item {
   readonly property int cornerRadius: Style.cornerRadius
   property string fontFamily: Style.font.menuFamily
   property int contentMargin: Style.spacing.panelPadding
-  property int cardWidth: Math.min(Style.space(760), panel.width - Style.gapsOut * 2)
-  property int cardHeight: Math.min(Style.space(620), panel.height - Style.gapsOut * 2)
+  // Sized like a dialog, not a fullscreen takeover: capped in absolute terms
+  // and again as a share of the screen so it stays a card on a small display.
+  property int cardWidth: Math.min(Style.space(720), Math.round(panel.width * 0.66))
+  property int cardHeight: Math.min(Style.space(560), Math.round(panel.height * 0.62))
   property int rowHeight: Math.max(Style.space(26), Style.font.body + Style.spacing.sm * 2)
 
   // ---------------------------------------------------------------- lifecycle
@@ -581,7 +583,11 @@ Item {
         readonly property real keysWidth: Math.round(width * 0.28)
 
         Column {
-          anchors.fill: parent
+          anchors.top: parent.top
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: footer.top
+          anchors.bottomMargin: Style.spacing.md
           spacing: Style.spacing.md
 
           // Tab strip, framed and labelled like the TUI's bordered block.
@@ -640,7 +646,7 @@ Item {
           // Table
           Rectangle {
             width: parent.width
-            height: parent.height - tabFrame.height - footer.height - Style.spacing.md * 2
+            height: parent.height - tabFrame.height - Style.spacing.md
             color: "transparent"
             border.color: root.border
             border.width: 1
@@ -757,20 +763,22 @@ Item {
               font.pixelSize: Style.font.body
             }
           }
+        }
 
-          // The search line doubles as the hint bar, like the TUI's footer.
-          Text {
-            id: footer
-            width: parent.width
-            text: root.filterText
-                  ? "/ " + root.filterText
-                  : "←/→ switch tab · ↑/↓ navigate · type to search · @tab to jump · Esc close"
-            color: root.filterText ? root.accent : root.foreground
-            opacity: root.filterText ? 1.0 : 0.5
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-          }
+        // The search line doubles as the hint bar, like the TUI's footer.
+        Text {
+          id: footer
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          text: root.filterText
+                ? "/ " + root.filterText
+                : "←/→ switch tab · ↑/↓ navigate · type to search · @tab to jump · Esc close"
+          color: root.filterText ? root.accent : root.foreground
+          opacity: root.filterText ? 1.0 : 0.5
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.bodySmall
+          elide: Text.ElideRight
         }
       }
     }
