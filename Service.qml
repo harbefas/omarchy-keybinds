@@ -9,7 +9,7 @@ import Quickshell.Hyprland
 //
 // Hyprland's binds come live from `hyprctl binds -j` and Neovim's from a
 // headless keymap dump; the rest are hand-copied defaults in data/*.json.
-// Nothing outside Hyprland, Quickshell, and an optional nvim is needed.
+// Nothing outside Hyprland, Quickshell, coreutils, and an optional nvim is needed.
 Item {
   id: root
 
@@ -434,8 +434,10 @@ Item {
     'vim.cmd("qa!")'
 
   // Refuse a dump larger than any real keymap set, rather than parsing whatever
-  // a wedged child decides to print.
+  // a wedged child decides to print. The process wrapper lets only this many
+  // bytes plus one through, so StdioCollector itself never grows unbounded.
   readonly property int maxDumpBytes: 4 * 1024 * 1024
+  readonly property int maxDumpCollectorBytes: maxDumpBytes + 1
 
   property bool nvimLoaded: false
 
@@ -465,7 +467,8 @@ Item {
 
   // Headless Neovim prints its own noise, so the payload is fenced in RS
   // (0x1e) markers and everything outside them is discarded.
-  function extractDump(raw) {
+  function extractDump(raw, rawBytes) {
+    if (Number(rawBytes) > root.maxDumpBytes) return ""
     var text = String(raw || "")
     if (text.length > root.maxDumpBytes) return ""
     var first = text.indexOf("\u001e")
@@ -474,8 +477,8 @@ Item {
     return text.slice(first + 1, last)
   }
 
-  function buildNeovimTab(raw) {
-    var payload = root.extractDump(raw)
+  function buildNeovimTab(raw, rawBytes) {
+    var payload = root.extractDump(raw, rawBytes)
     if (!payload) return false
 
     var entries = []
@@ -511,15 +514,23 @@ Item {
     nvimDump.running = true
   }
 
-  // `timeout` guards against plugins that hang headless startup waiting on a
-  // UI that never attaches.
+  // The wrapper pipes the noisy child through `head -c max+1`, which puts the
+  // byte ceiling before the StdioCollector. `timeout` still guards against
+  // plugins that hang headless startup waiting on a UI that never attaches.
   Process {
     id: nvimDump
-    command: ["timeout", "8", "nvim", "--headless", "-c", "lua " + root.nvimDumpLua]
+    command: [
+      Quickshell.env("HOME") + "/.config/omarchy/plugins/harbefas.keybinds/bin/nvim-keymap-dump",
+      String(root.maxDumpCollectorBytes),
+      root.nvimDumpLua
+    ]
     stdout: StdioCollector {
+      id: nvimDumpStdout
       onStreamFinished: {
-        if (!root.buildNeovimTab(text) && !root.nvimLoaded)
-          root.upsertTab(root.placeholderNeovimTab("no keymaps found in the nvim dump"), 99)
+        var rawBytes = nvimDumpStdout.data.byteLength
+        var overflowed = Number(rawBytes) > root.maxDumpBytes
+        if (!root.buildNeovimTab(text, rawBytes) && !root.nvimLoaded)
+          root.upsertTab(root.placeholderNeovimTab(overflowed ? "nvim dump exceeded 4 MiB" : "no keymaps found in the nvim dump"), 99)
       }
     }
     onExited: function (code, status) {

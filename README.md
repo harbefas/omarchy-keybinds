@@ -114,12 +114,13 @@ omarchy-shell shell summon harbefas.keybinds
 
 ## Requirements
 
-Hyprland and Quickshell, both of which Omarchy already provides. `nvim` is
-optional: without it the Neovim tab says so and every other tab still works.
+Hyprland, Quickshell, `timeout`, and `head`, all of which Omarchy already
+provides. `nvim` is optional: without it the Neovim tab says so and every other
+tab still works.
 
 The Neovim keymaps are dumped in the background on the first open of a shell
-session and read straight off the child process's stdout — nothing is written
-to disk.
+session and read straight off a bounded stdout pipe — nothing is written to
+disk.
 
 ## Terminal version
 

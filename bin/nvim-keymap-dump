@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -o pipefail
+
+if [[ $# -ne 2 ]]; then
+  exit 2
+fi
+
+max_bytes="$1"
+lua_chunk="$2"
+
+if [[ ! "$max_bytes" =~ ^[1-9][0-9]*$ ]]; then
+  exit 2
+fi
+
+timeout 8 nvim --headless -c "lua ${lua_chunk}" | head -c "$max_bytes"
